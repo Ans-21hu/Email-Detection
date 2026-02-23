@@ -16,10 +16,20 @@ let currentEmailId = null;
 let buttonInjected = false;
 let retryCount = 0;
 
+// Helper to check if extension context is still valid
+function isContextValid() {
+    try {
+        return !!(chrome && chrome.runtime && chrome.runtime.id);
+    } catch (e) {
+        return false;
+    }
+}
+
 // Main function to check and inject button
 function checkAndInjectButton() {
-    if (window._EMAIL_ANALYZER_ID !== _SCRIPT_INST_ID) {
-        // Stop checking if we are an orphaned instance
+    if (window._EMAIL_ANALYZER_ID !== _SCRIPT_INST_ID || !isContextValid()) {
+        // Stop checking and cleanup if we are an orphaned or invalidated instance
+        removeButton();
         return;
     }
     if (retryCount >= CONFIG.maxRetries) {
@@ -147,18 +157,18 @@ function injectButton() {
 
     // Button styling
     button.style.cssText = `
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        background: linear-gradient(135deg, #4361ee 0%, #3046bc 100%);
         color: white;
         border: none;
-        border-radius: 18px;
-        padding: 10px 18px;
+        border-radius: 20px;
+        padding: 10px 20px;
         cursor: pointer;
         font-size: 14px;
         font-weight: 600;
         display: flex;
         align-items: center;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
         white-space: nowrap;
         font-family: 'Google Sans', Roboto, Arial, sans-serif;
     `;
@@ -306,9 +316,9 @@ async function handleAnalyzeClick() {
         console.log('📧 Email extracted, length:', emailContent.length);
 
         // Safe check for extension context
-        if (!chrome.runtime || !chrome.runtime.id) {
-            console.error('Extension context invalidated');
+        if (!isContextValid()) {
             showTemporaryMessage('❌ Extension reloaded. Please refresh Gmail to continue.', 'error');
+            removeButton();
             return;
         }
 
@@ -401,28 +411,39 @@ function getEmailContent() {
             document.title.split('-')[0]?.trim() ||
             'No Subject';
 
-        const sender = document.querySelector('.gD')?.textContent?.trim() ||
-            document.querySelector('[email]')?.getAttribute('email') ||
-            document.querySelector('.go')?.textContent?.trim() ||
-            'Unknown Sender';
+        const senderElement = document.querySelector('.gD') ||
+            document.querySelector('[email]') ||
+            document.querySelector('.go');
+
+        const senderName = senderElement?.textContent?.trim() || 'Unknown';
+        const senderEmail = senderElement?.getAttribute('email') ||
+            senderElement?.textContent?.match(/<(.+?)>/)?.[1] ||
+            senderElement?.textContent?.trim() || 'Unknown';
 
         const date = document.querySelector('.g3')?.textContent?.trim() ||
             document.querySelector('.xW')?.textContent?.trim() ||
             'Unknown Date';
 
+        // Check for security indicators in the UI
+        const isVerified = !!document.querySelector('[aria-label*="Verified" i], [title*="Verified" i]');
+        const viaDomain = document.querySelector('.ajy')?.textContent?.trim() || null;
+
         const emailData = {
             subject: subject,
-            from: sender,
+            from: senderEmail,
+            senderName: senderName,
             date: date,
             body: emailBody.textContent.trim(),
             url: window.location.href,
             emailId: currentEmailId,
-            extractedAt: new Date().toISOString()
+            extractedAt: new Date().toISOString(),
+            isVerifiedUI: isVerified,
+            viaDomain: viaDomain
         };
 
         console.log('Email extracted:', {
             subject: subject.substring(0, 50) + '...',
-            from: sender,
+            from: senderEmail,
             bodyLength: emailBody.textContent.trim().length
         });
 
@@ -613,7 +634,8 @@ function initialize() {
 
     // Also check on DOM changes (Gmail is very dynamic)
     const observer = new MutationObserver(() => {
-        if (window._EMAIL_ANALYZER_ID !== _SCRIPT_INST_ID) {
+        if (window._EMAIL_ANALYZER_ID !== _SCRIPT_INST_ID || !isContextValid()) {
+            removeButton();
             observer.disconnect();
             return;
         }

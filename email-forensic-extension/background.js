@@ -9,11 +9,11 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.local.set({
         autoScan: false,
         notifications: true,
-        apiEndpoint: 'https://mailxpose.tech',
+        apiEndpoint: 'https://mailxpose.tech/api/api',
         scanCount: 0,
         threatCount: 0,
         installed: true,
-        version: '2.0'
+        version: '2.2'
     });
 
     // Create context menu
@@ -140,7 +140,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({
                 connected: true,
                 message: 'Background script is running',
-                version: '2.0'
+                version: '2.2'
             });
             break;
 

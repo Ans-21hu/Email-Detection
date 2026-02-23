@@ -5,20 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Forensic Analyzer</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/all.min.css">
     <style>
         :root {
-            --neon-primary: #0ff0fc;
-            --neon-secondary: #ff00ff;
-            --neon-success: #00ff9d;
-            --neon-warning: #ffd800;
-            --neon-danger: #ff0055;
-            --dark-bg: #0a0a14;
-            --darker-bg: #050510;
-            --card-bg: rgba(20, 20, 40, 0.8);
-            --text-light: #f0f0ff;
-            --text-dim: #a0a0c0;
-            --transition: all 0.3s ease;
+            --primary-gradient: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);
+            --primary-blue: #4361ee;
+            --primary-hover: #3730a3;
+            --navy-dark: #0a1128;
+            --navy-card: rgba(28, 37, 65, 0.8);
+            --navy-border: rgba(67, 97, 238, 0.2);
+            --text-light: #ffffff;
+            --text-dim: #cbd5e1;
+            --danger: #ef4444;
+            --success: #10b981;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * {
@@ -31,7 +31,7 @@
         body {
             width: 800px;
             height: 650px;
-            background: linear-gradient(135deg, #0a0a14 0%, #151530 100%);
+            background: radial-gradient(circle at top right, #1c2541, #0a1128);
             overflow: hidden;
         }
 
@@ -40,22 +40,26 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            background: var(--dark-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 0;
-            overflow: hidden;
+            background: transparent;
             position: relative;
         }
 
         /* Header */
         .app-header {
-            background: rgba(10, 10, 20, 0.95);
-            padding: 20px 25px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            background: rgba(28, 37, 65, 0.6);
+            backdrop-filter: blur(15px);
+            padding: 15px 25px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(15, 240, 252, 0.2);
+            border-bottom: 1px solid var(--navy-border);
+            z-index: 100;
+        }
+
+        .brand-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
 
         .brand {
@@ -65,33 +69,41 @@
         }
 
         .brand-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+            width: 48px;
+            height: 48px;
+            background: transparent;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 22px;
-            box-shadow: 0 0 15px var(--neon-primary), 0 0 30px rgba(15, 240, 252, 0.3);
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .brand-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .brand-text h1 {
-            font-size: 1.8rem;
+            font-size: 1.4rem;
             font-weight: 700;
-            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 4px;
-            text-shadow: 0 0 10px rgba(15, 240, 252, 0.5);
+            color: var(--text-light);
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-text h1 span {
+            display: inline-block;
         }
 
         .brand-text .subtitle {
-            font-size: 0.9rem;
-            color: var(--neon-primary);
-            font-weight: 500;
-            letter-spacing: 0.5px;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-weight: 400;
         }
 
         .stats {
@@ -104,11 +116,10 @@
         }
 
         .stat-value {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 700;
-            color: var(--neon-primary);
+            color: var(--primary-blue);
             display: block;
-            text-shadow: 0 0 8px var(--neon-primary);
         }
 
         .stat-label {
@@ -117,53 +128,141 @@
             font-weight: 500;
         }
 
+        /* Subscription Info */
+        .subscription-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+            display: inline-block;
+            box-shadow: 0 0 10px rgba(15, 240, 252, 0.2);
+        }
+
+        .plan-free {
+            background: rgba(160, 160, 192, 0.2);
+            color: var(--text-dim);
+            border: 1px solid var(--text-dim);
+        }
+
+        .plan-99 {
+            background: rgba(15, 240, 252, 0.2);
+            color: var(--neon-primary);
+            border: 1px solid var(--neon-primary);
+        }
+
+        .plan-199 {
+            background: rgba(255, 0, 255, 0.2);
+            color: var(--neon-secondary);
+            border: 1px solid var(--neon-secondary);
+        }
+
+        .usage-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(10, 10, 20, 0.4);
+            border-radius: 12px;
+            border: 1px solid rgba(15, 240, 252, 0.1);
+        }
+
+        .usage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .usage-label {
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .usage-value {
+            color: var(--neon-primary);
+            font-weight: 700;
+        }
+
+        .usage-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .usage-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-primary), var(--neon-secondary));
+            width: 0%;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px var(--neon-primary);
+        }
+
         /* Main Content */
         .main-content {
             flex: 1;
-            padding: 25px;
+            padding: 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 25px;
+            /* Increased gap for better spacing */
+        }
+
+        .setup-section,
+        .input-section,
+        .analysis-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         /* Card Design */
         .card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 25px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(15, 240, 252, 0.1);
-            transition: var(--transition);
+            background: var(--navy-card);
             backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 22px;
+            /* Increased padding */
+            border: 1px solid var(--navy-border);
+            transition: var(--transition);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            /* Make cards flex for internal gap */
+            flex-direction: column;
+            gap: 15px;
         }
 
         .card:hover {
+            border: 1px solid rgba(67, 97, 238, 0.4);
             transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(15, 240, 252, 0.1);
-            border: 1px solid rgba(15, 240, 252, 0.3);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
         }
 
         .card-header {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid rgba(15, 240, 252, 0.2);
+            margin-bottom: 5px;
+            /* Reduced since parent has gap */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
         }
 
         .card-icon {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
-            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 18px;
-            box-shadow: 0 0 15px var(--neon-primary);
+            font-size: 16px;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
         }
 
         .card-title {
@@ -193,45 +292,44 @@
 
         .clear-btn {
             background: transparent;
-            border: 2px solid rgba(255, 0, 85, 0.3);
-            color: var(--neon-danger);
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--danger);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
             font-weight: 500;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             transition: var(--transition);
         }
 
         .clear-btn:hover {
-            background: var(--neon-danger);
+            background: var(--danger);
             color: white;
-            border-color: var(--neon-danger);
-            box-shadow: 0 0 15px var(--neon-danger);
+            border-color: var(--danger);
         }
 
         textarea {
             width: 100%;
             min-height: 180px;
-            padding: 20px;
-            border: 2px solid rgba(15, 240, 252, 0.3);
-            border-radius: 12px;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            resize: vertical;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: none;
             transition: var(--transition);
-            background: rgba(10, 10, 20, 0.6);
+            background: rgba(15, 23, 42, 0.6);
             color: var(--text-light);
         }
 
         textarea:focus {
             outline: none;
-            border-color: var(--neon-primary);
-            background: rgba(10, 10, 30, 0.8);
-            box-shadow: 0 0 0 3px rgba(15, 240, 252, 0.2), 0 0 15px var(--neon-primary);
+            border-color: var(--primary-blue);
+            background: rgba(15, 23, 42, 0.8);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         }
 
         /* Button Styles */
@@ -257,26 +355,27 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+            background: var(--primary-gradient);
             color: white;
-            box-shadow: 0 4px 15px rgba(15, 240, 252, 0.4), 0 0 20px rgba(255, 0, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(15, 240, 252, 0.6), 0 0 30px rgba(255, 0, 255, 0.4);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+            filter: brightness(1.1);
         }
 
         .btn-secondary {
-            background: rgba(15, 240, 252, 0.1);
-            color: var(--neon-primary);
-            border: 2px solid var(--neon-primary);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .btn-secondary:hover {
-            background: rgba(15, 240, 252, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
             transform: translateY(-2px);
-            box-shadow: 0 0 15px var(--neon-primary);
         }
 
         /* Quick Actions */
@@ -288,32 +387,39 @@
         }
 
         .action-card {
-            background: rgba(20, 20, 40, 0.8);
-            border-radius: 14px;
-            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            padding: 15px;
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
             cursor: pointer;
             transition: var(--transition);
-            border: 2px solid transparent;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .action-card:hover {
-            border-color: var(--neon-primary);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 0 0 20px rgba(15, 240, 252, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
         }
 
         .action-icon {
-            width: 50px;
-            height: 50px;
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--primary-blue);
             font-size: 20px;
+            transition: var(--transition);
+        }
+
+        .action-card:hover .action-icon {
+            background: var(--primary-gradient);
+            color: white;
+            transform: scale(1.1) rotate(5deg);
         }
 
         .action-text h4 {
@@ -335,7 +441,7 @@
         .back-btn {
             background: transparent;
             border: none;
-            color: var(--neon-primary);
+            color: var(--primary-blue);
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
@@ -348,9 +454,8 @@
         }
 
         .back-btn:hover {
-            color: var(--neon-secondary);
+            color: var(--primary-hover);
             transform: translateX(-5px);
-            text-shadow: 0 0 10px var(--neon-primary);
         }
 
         .results-grid {
@@ -359,11 +464,10 @@
         }
 
         .result-card {
-            background: rgba(20, 20, 40, 0.8);
-            border-radius: 14px;
-            padding: 20px;
-            border-left: 5px solid var(--neon-primary);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            background: var(--background-card);
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 4px solid var(--primary-blue);
         }
 
         .result-header {
@@ -405,21 +509,17 @@
         }
 
         .risk-score {
-            font-size: 3.5rem;
+            font-size: 3rem;
             font-weight: 800;
-            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--primary-blue);
             line-height: 1;
-            text-shadow: 0 0 20px rgba(15, 240, 252, 0.5);
         }
 
         .risk-level {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 600;
-            color: var(--neon-primary);
-            margin: 10px 0;
-            text-shadow: 0 0 10px var(--neon-primary);
+            color: var(--primary-blue);
+            margin: 8px 0;
         }
 
         /* Loading Overlay */
@@ -448,14 +548,13 @@
         }
 
         .spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(15, 240, 252, 0.2);
-            border-top-color: var(--neon-primary);
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary-blue);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 25px;
-            box-shadow: 0 0 15px var(--neon-primary);
+            margin: 0 auto 20px;
         }
 
         @keyframes spin {
@@ -467,9 +566,8 @@
         .loading-text {
             font-size: 1.8rem;
             font-weight: 700;
-            color: var(--neon-primary);
+            color: var(--primary-blue);
             margin-bottom: 10px;
-            text-shadow: 0 0 10px var(--neon-primary);
         }
 
         .loading-subtext {
@@ -488,22 +586,23 @@
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--neon-primary), var(--neon-secondary));
+            background: var(--primary-gradient);
             width: 0%;
             transition: width 0.3s ease;
             border-radius: 4px;
-            box-shadow: 0 0 10px var(--neon-primary);
+            box-shadow: 0 0 10px var(--primary-blue);
         }
 
         /* Status Bar */
         .status-bar {
-            background: rgba(10, 10, 20, 0.95);
-            padding: 15px 25px;
-            border-top: 1px solid rgba(15, 240, 252, 0.2);
+            background: rgba(10, 17, 40, 0.8);
+            padding: 12px 25px;
+            border-top: 1px solid var(--navy-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            backdrop-filter: blur(10px);
         }
 
         #statusText {
@@ -521,12 +620,12 @@
         }
 
         .status-dot {
-            width: 10px;
-            height: 10px;
-            background: var(--neon-success);
+            width: 8px;
+            height: 8px;
+            background: var(--success);
             border-radius: 50%;
+            box-shadow: 0 0 10px var(--success);
             animation: pulse 2s infinite;
-            box-shadow: 0 0 10px var(--neon-success);
         }
 
         @keyframes pulse {
@@ -534,12 +633,12 @@
             0%,
             100% {
                 opacity: 1;
-                box-shadow: 0 0 10px var(--neon-success);
+                box-shadow: 0 0 10px var(--success);
             }
 
             50% {
                 opacity: 0.5;
-                box-shadow: 0 0 5px var(--neon-success);
+                box-shadow: 0 0 5px var(--success);
             }
         }
 
@@ -559,14 +658,12 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: var(--neon-primary);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 4px;
-            box-shadow: 0 0 10px var(--neon-primary);
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: var(--neon-secondary);
-            box-shadow: 0 0 15px var(--neon-secondary);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         /* Utility Classes */
@@ -598,81 +695,71 @@
         .features-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+            gap: 20px;
+            margin-top: 10px;
         }
 
         .features-grid div {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px;
-            background: rgba(15, 240, 252, 0.05);
-            border-radius: 10px;
-            border: 1px solid rgba(15, 240, 252, 0.1);
+            padding: 15px;
+            background: rgba(28, 37, 65, 0.4);
+            border-radius: 12px;
+            border: 1px solid var(--navy-border);
             transition: var(--transition);
         }
 
         .features-grid div:hover {
-            background: rgba(15, 240, 252, 0.1);
-            border-color: var(--neon-primary);
-            box-shadow: 0 0 15px rgba(15, 240, 252, 0.2);
+            background: rgba(67, 97, 238, 0.1);
+            border-color: rgba(67, 97, 238, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
-        .features-grid div i {
-            color: var(--neon-primary);
+        .features-grid i {
             font-size: 1.2rem;
-            text-shadow: 0 0 10px currentColor;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            transition: var(--transition);
         }
 
-        .features-grid div span {
-            font-weight: 500;
+        /* Feature specific premium colors */
+        .feat-verify i {
+            background: rgba(56, 189, 248, 0.2);
+            color: #38bdf8 !important;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+
+        .feat-link i {
+            background: rgba(99, 102, 241, 0.2);
+            color: #6366f1 !important;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .feat-header i {
+            background: rgba(52, 211, 153, 0.2);
+            color: #34d399 !important;
+            box-shadow: 0 0 15px rgba(52, 211, 153, 0.3);
+        }
+
+        .feat-ai i {
+            background: rgba(167, 139, 250, 0.2);
+            color: #a78bfa !important;
+            box-shadow: 0 0 15px rgba(167, 139, 250, 0.3);
+        }
+
+        .features-grid span {
+            font-weight: 600;
             color: var(--text-light);
+            font-size: 0.9rem;
         }
 
-        /* Quick Action Specific Colors */
-        #scanAllBtn .action-icon {
-            background: linear-gradient(135deg, var(--neon-primary), #3a0ca3);
-            box-shadow: 0 0 15px var(--neon-primary);
-        }
-
-        #settingsBtn .action-icon {
-            background: linear-gradient(135deg, var(--neon-success), #118ab2);
-            box-shadow: 0 0 15px var(--neon-success);
-        }
-
-        #reportsBtn .action-icon {
-            background: linear-gradient(135deg, var(--neon-secondary), #f72585);
-            box-shadow: 0 0 15px var(--neon-secondary);
-        }
-
-        /* Quick Action Card specific styling */
-        .action-card:nth-child(1) .action-icon {
-            background: linear-gradient(135deg, var(--neon-primary), #3a0ca3);
-            box-shadow: 0 0 15px var(--neon-primary);
-        }
-
-        .action-card:nth-child(2) .action-icon {
-            background: linear-gradient(135deg, var(--neon-success), #118ab2);
-            box-shadow: 0 0 15px var(--neon-success);
-        }
-
-        .action-card:nth-child(3) .action-icon {
-            background: linear-gradient(135deg, var(--neon-secondary), #f72585);
-            box-shadow: 0 0 15px var(--neon-secondary);
-        }
-
-        /* Card Icon specific gradients */
-        .card-icon[style*="background: linear-gradient(135deg, #ff6b6b, #ff8e53);"] {
-            background: linear-gradient(135deg, var(--neon-danger), #ff8e53) !important;
-            box-shadow: 0 0 15px var(--neon-danger) !important;
-        }
-
-        .card-icon[style*="background: linear-gradient(135deg, #ff9e00, #ff0054);"] {
-            background: linear-gradient(135deg, var(--neon-warning), var(--neon-danger)) !important;
-            box-shadow: 0 0 15px var(--neon-warning) !important;
-        }
-
-        /* Neon Glow for important elements */
+        /* Remove legacy neon glows */
         .brand-icon,
         .card-icon,
         .action-icon,
@@ -681,20 +768,150 @@
             position: relative;
         }
 
-        .brand-icon::after,
-        .card-icon::after,
-        .action-icon::after {
-            content: '';
+        /* Profile Dropdown */
+        .profile-container {
+            position: relative;
+            display: none;
+            /* Shown when linked */
+        }
+
+        .profile-toggle {
+            width: 38px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .profile-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--primary-blue);
+        }
+
+        .profile-dropdown {
             position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: inherit;
-            border-radius: inherit;
-            z-index: -1;
-            filter: blur(8px);
-            opacity: 0.6;
+            top: calc(100% + 10px);
+            right: 0;
+            width: 250px;
+            background: #1c2541;
+            /* Solid navy background to prevent overlap */
+            border: 1px solid var(--navy-border);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        .profile-dropdown.active {
+            display: flex;
+        }
+
+        .profile-info {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .profile-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .profile-email {
+            font-size: 0.8rem;
+            color: #ffffff;
+            /* User requested white text */
+            opacity: 0.9;
+            word-break: break-all;
+        }
+
+        .profile-actions {
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dropdown-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .dropdown-item:hover {
+            background: rgba(67, 97, 238, 0.2);
+            color: #ffffff;
+        }
+
+        .dropdown-item.logout-action {
+            color: var(--danger);
+            margin-top: 5px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 0 0 8px 8px;
+        }
+
+        .dropdown-item.logout-action:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        /* Usage Section Styles */
+        .usage-container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .usage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .usage-label {
+            font-size: 0.75rem;
+            color: #ffffff;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+
+        .usage-value {
+            font-size: 0.85rem;
+            color: #ffffff;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .usage-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .usage-fill {
+            height: 100%;
+            background: var(--primary-gradient);
+            transition: width 0.5s ease-out;
+            box-shadow: 0 0 10px rgba(67, 97, 238, 0.3);
         }
     </style>
 </head>
@@ -705,7 +922,7 @@
         <div class="app-header">
             <div class="brand">
                 <div class="brand-icon">
-                    <i class="fas fa-shield-alt"></i>
+                    <img src="icon.png" alt="Email Forensic Icon">
                 </div>
                 <div class="brand-text">
                     <h1>Email Forensic Analyzer</h1>
@@ -713,18 +930,79 @@
                 </div>
             </div>
 
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-value" id="scanCount">0</span>
-                    <span class="stat-label">Scans Today</span>
+            <div class="header-right" style="display: flex; align-items: center; gap: 20px;">
+                <div class="stats" style="gap: 15px;">
+                    <div class="stat-item">
+                        <span class="stat-value" id="scanCount">0</span>
+                        <span class="stat-label" style="font-size: 0.7rem;">Scans</span>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-value" id="threatCount">0</span>
-                    <span class="stat-label">Threats Found</span>
+
+                <!-- Profile Dropdown Container -->
+                <div class="profile-container" id="profileContainer">
+                    <div class="profile-toggle" id="profileToggle">
+                        <i class="fas fa-user-circle" style="font-size: 1.4rem;"></i>
+                    </div>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <div class="profile-info">
+                            <div class="profile-name" id="userNameDisplay">User Name</div>
+                            <div class="profile-email" id="userEmailDisplay">user@example.com</div>
+                            <div id="planDisplay" class="subscription-badge plan-free"
+                                style="margin-top: 8px; font-size: 0.65rem;">Free Plan</div>
+                        </div>
+                        <div class="profile-actions">
+                            <div class="dropdown-item" id="navDashboard">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </div>
+                            <div class="dropdown-item logout-action" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-value" id="successRate">100%</span>
-                    <span class="stat-label">Success Rate</span>
+            </div>
+        </div>
+
+        <!-- Stats Overview (Condensed) -->
+        <div style="padding: 20px 20px 5px; display: flex; gap: 20px;" id="statsOverview">
+            <div
+                style="flex: 1; background: var(--navy-card); backdrop-filter: blur(8px); padding: 12px; border-radius: 10px; border: 1px solid var(--navy-border); display: flex; align-items: center; gap: 10px;">
+                <div
+                    style="width: 32px; height: 32px; background: rgba(67, 97, 238, 0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #4361ee; box-shadow: 0 4px 8px rgba(67, 97, 238, 0.2);">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <div>
+                    <div
+                        style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">
+                        Scans</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-light);" id="scanCount2">0</div>
+                </div>
+            </div>
+            <div
+                style="flex: 1; background: var(--navy-card); backdrop-filter: blur(8px); padding: 12px; border-radius: 10px; border: 1px solid var(--navy-border); display: flex; align-items: center; gap: 10px;">
+                <div
+                    style="width: 32px; height: 32px; background: rgba(239, 68, 68, 0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #ef4444; box-shadow: 0 4px 8px rgba(239, 68, 68, 0.2);">
+                    <i class="fas fa-skull"></i>
+                </div>
+                <div>
+                    <div
+                        style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">
+                        Threats</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-light);" id="threatCount">0</div>
+                </div>
+            </div>
+            <div
+                style="flex: 1; background: var(--navy-card); backdrop-filter: blur(8px); padding: 12px; border-radius: 10px; border: 1px solid var(--navy-border); display: flex; align-items: center; gap: 10px;">
+                <div
+                    style="width: 32px; height: 32px; background: rgba(16, 185, 129, 0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #10b981; box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);">
+                    <i class="fas fa-shield-check"></i>
+                </div>
+                <div>
+                    <div
+                        style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">
+                        Success</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-light);" id="successRate">100%
+                    </div>
                 </div>
             </div>
         </div>
@@ -743,16 +1021,15 @@
 
                     <div style="padding: 20px;">
                         <p style="color: var(--text-dim); margin-bottom: 20px; text-align: center;">
-                            Connect this extension to your Email Forensic Analyzer dashboard to sync reports
-                            automatically.
+                            Connect this extension to your dashboard to sync reports automatically.
                         </p>
 
                         <div style="margin-bottom: 20px;">
                             <label
                                 style="display: block; margin-bottom: 8px; color: var(--text-light); font-weight: 500;">Dashboard
                                 Email</label>
-                            <input type="email" id="dashboardEmail" placeholder="Enter you email"
-                                style="width: 100%; padding: 12px; background: rgba(10, 10, 20, 0.6); border: 2px solid rgba(15, 240, 252, 0.3); border-radius: 8px; color: var(--text-light); font-size: 0.9rem;">
+                            <input type="email" id="dashboardEmail" placeholder="Enter your email"
+                                style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; color: var(--text-light); font-size: 0.9rem;">
                         </div>
 
                         <div style="margin-bottom: 20px;">
@@ -760,7 +1037,7 @@
                                 style="display: block; margin-bottom: 8px; color: var(--text-light); font-weight: 500;">Dashboard
                                 Password</label>
                             <input type="password" id="dashboardPassword" placeholder="Enter your password"
-                                style="width: 100%; padding: 12px; background: rgba(10, 10, 20, 0.6); border: 2px solid rgba(15, 240, 252, 0.3); border-radius: 8px; color: var(--text-light); font-size: 0.9rem;">
+                                style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; color: var(--text-light); font-size: 0.9rem;">
                         </div>
 
                         <div class="btn-group">
@@ -779,7 +1056,10 @@
                         </div>
 
                         <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 15px; text-align: center;">
-                            Your credentials are only used to establish the connection and are not stored.
+                            Your credentials are only used for authentication. Email content is processed by our AI
+                            engine for forensic analysis. See our <a href="https://mailxpose.tech/privacy-policy"
+                                target="_blank" style="color: var(--primary-blue); text-decoration: none;">Privacy
+                                Policy</a> for details.
                         </p>
                     </div>
                 </div>
@@ -793,6 +1073,30 @@
                             <i class="fas fa-envelope-open-text"></i>
                         </div>
                         <h2 class="card-title">Email Analysis</h2>
+                    </div>
+
+                    <div class="usage-container" id="usageContainer" style="display: none; margin-bottom: 20px;">
+                        <div class="usage-header">
+                            <span class="usage-label">Daily Limit</span>
+                            <span class="usage-value" id="usageValue">- / -</span>
+                        </div>
+                        <div class="usage-bar">
+                            <div class="usage-fill" id="usageFill" style="width: 0%;"></div>
+                        </div>
+                        <div id="limitNotice"
+                            style="font-size: 0.75rem; color: #ffffff; margin-top: 8px; text-align: center; opacity: 0.9;">
+                        </div>
+                    </div>
+
+                    <div
+                        style="background: rgba(67, 97, 238, 0.1); border: 1px solid rgba(67, 97, 238, 0.2); border-radius: 8px; padding: 10px; margin-bottom: 15px; display: flex; align-items: flex-start; gap: 10px;">
+                        <i class="fas fa-user-shield" style="color: var(--primary-blue); margin-top: 3px;"></i>
+                        <p style="font-size: 0.75rem; color: var(--text-dim); line-height: 1.4;">
+                            <strong style="color: var(--text-light); display: block; margin-bottom: 2px;">Privacy
+                                Disclosure</strong>
+                            By clicking "Analyze Now", you agree to send the email content to our secure AI engine for
+                            security verification. No personal data is stored permanently.
+                        </p>
                     </div>
 
                     <div class="input-header">
@@ -828,32 +1132,32 @@
 
                     <div class="quick-actions-grid">
                         <div class="action-card" id="scanAllBtn">
-                            <div class="action-icon" style="background: linear-gradient(135deg, #4361ee, #3a0ca3);">
+                            <div class="action-icon">
                                 <i class="fas fa-sync-alt"></i>
                             </div>
                             <div class="action-text">
                                 <h4>Scan All</h4>
-                                <p>Complete inbox analysis</p>
+                                <p>Deep scan inbox</p>
                             </div>
                         </div>
 
                         <div class="action-card" id="settingsBtn">
-                            <div class="action-icon" style="background: linear-gradient(135deg, #06d6a0, #118ab2);">
+                            <div class="action-icon">
                                 <i class="fas fa-cog"></i>
                             </div>
                             <div class="action-text">
                                 <h4>Settings</h4>
-                                <p>Configure preferences</p>
+                                <p>Configure app</p>
                             </div>
                         </div>
 
                         <div class="action-card" id="reportsBtn">
-                            <div class="action-icon" style="background: linear-gradient(135deg, #7209b7, #f72585);">
+                            <div class="action-icon">
                                 <i class="fas fa-chart-bar"></i>
                             </div>
                             <div class="action-text">
                                 <h4>Reports</h4>
-                                <p>View analytics</p>
+                                <p>View results</p>
                             </div>
                         </div>
                     </div>
@@ -868,30 +1172,22 @@
                         <h2 class="card-title">Advanced Features</h2>
                     </div>
 
-                    <div class="features-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                        <div
-                            style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(15, 240, 252, 0.05); border-radius: 10px; border: 1px solid rgba(15, 240, 252, 0.1);">
-                            <i class="fas fa-fingerprint"
-                                style="color: #0ff0fc; font-size: 1.2rem; text-shadow: 0 0 10px #0ff0fc;"></i>
-                            <span style="font-weight: 500; color: #f0f0ff;">Sender Verification</span>
+                    <div class="features-grid">
+                        <div class="feat-verify">
+                            <i class="fas fa-fingerprint"></i>
+                            <span>Sender Verification</span>
                         </div>
-                        <div
-                            style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(15, 240, 252, 0.05); border-radius: 10px; border: 1px solid rgba(15, 240, 252, 0.1);">
-                            <i class="fas fa-link"
-                                style="color: #ff00ff; font-size: 1.2rem; text-shadow: 0 0 10px #ff00ff;"></i>
-                            <span style="font-weight: 500; color: #f0f0ff;">Link Analysis</span>
+                        <div class="feat-link">
+                            <i class="fas fa-link"></i>
+                            <span>Link Analysis</span>
                         </div>
-                        <div
-                            style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(15, 240, 252, 0.05); border-radius: 10px; border: 1px solid rgba(15, 240, 252, 0.1);">
-                            <i class="fas fa-code"
-                                style="color: #00ff9d; font-size: 1.2rem; text-shadow: 0 0 10px #00ff9d;"></i>
-                            <span style="font-weight: 500; color: #f0f0ff;">Header Inspection</span>
+                        <div class="feat-header">
+                            <i class="fas fa-code"></i>
+                            <span>Header Inspection</span>
                         </div>
-                        <div
-                            style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(15, 240, 252, 0.05); border-radius: 10px; border: 1px solid rgba(15, 240, 252, 0.1);">
-                            <i class="fas fa-robot"
-                                style="color: #ff0055; font-size: 1.2rem; text-shadow: 0 0 10px #ff0055;"></i>
-                            <span style="font-weight: 500; color: #f0f0ff;">AI Detection</span>
+                        <div class="feat-ai">
+                            <i class="fas fa-robot"></i>
+                            <span>AI Detection</span>
                         </div>
                     </div>
                 </div>
@@ -929,6 +1225,15 @@
             </div>
         </div>
 
+        <div
+            style="padding: 10px 25px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: center; gap: 20px;">
+            <a href="https://mailxpose.tech/privacy-policy" target="_blank"
+                style="color: var(--text-dim); font-size: 0.7rem; text-decoration: none;">Privacy Policy</a>
+            <a href="https://mailxpose.tech/terms-conditions" target="_blank"
+                style="color: var(--text-dim); font-size: 0.7rem; text-decoration: none;">Terms of Service</a>
+            <span style="color: var(--text-dim); font-size: 0.7rem;">v2.2</span>
+        </div>
+
         <!-- Loading Overlay -->
         <div class="loading-overlay" id="loadingOverlay">
             <div class="loading-content">
@@ -941,6 +1246,7 @@
             </div>
         </div>
     </div>
+    <script src="jspdf.min.js"></script>
     <script src="popup.js"></script>
 </body>
 

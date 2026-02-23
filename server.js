@@ -714,7 +714,7 @@ app.get('/profile.html', (req, res) => {
 // ==================== AUTHENTICATION ROUTES ====================
 
 // Register new user
-app.post(['/api/auth/register', '/auth/register'], async (req, res) => {
+app.post(['/api/auth/register', '/auth/register', '/api/api/auth/register'], async (req, res) => {
     try {
         const { username, email, password, fullName } = req.body;
 
@@ -820,7 +820,7 @@ app.post(['/api/auth/register', '/auth/register'], async (req, res) => {
 });
 
 // Login user
-app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
+app.post(['/api/auth/login', '/auth/login', '/api/api/auth/login'], async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -1053,7 +1053,7 @@ app.post('/api/payment/verify-payment', authenticateToken, async (req, res) => {
 // ==================== EXTENSION INTEGRATION ROUTES ====================
 
 // Extension Registration/Installation
-app.post('/api/extension/register', async (req, res) => {
+app.post(['/api/extension/register', '/extension/register', '/api/api/extension/register'], async (req, res) => {
     try {
         const { userId, extensionId, deviceInfo, subscriptionPlan } = req.body;
 
@@ -1132,7 +1132,7 @@ app.post('/api/extension/register', async (req, res) => {
 });
 
 // Extension Authentication
-app.post('/api/extension/auth', async (req, res) => {
+app.post(['/api/extension/auth', '/extension/auth', '/api/api/extension/auth'], async (req, res) => {
     try {
         const { extensionId, apiKey } = req.body;
 
@@ -1214,7 +1214,7 @@ app.post('/api/extension/auth', async (req, res) => {
 });
 
 // Sync Extension Report to Dashboard
-app.post('/api/extension/reports/sync', authenticateExtension, async (req, res) => {
+app.post(['/api/extension/reports/sync', '/extension/reports/sync', '/api/api/extension/reports/sync'], authenticateExtension, async (req, res) => {
     try {
         const extensionData = req.extension;
         const reportData = req.body;
@@ -2004,7 +2004,7 @@ app.patch('/api/user/preferences', authenticateToken, async (req, res) => {
 // ==================== ANALYSIS ROUTES ====================
 
 // Analyze email - UPDATED VERSION
-app.post('/api/analysis/analyze', async (req, res) => {
+app.post(['/api/analysis/analyze', '/analysis/analyze', '/api/api/analysis/analyze'], async (req, res) => {
     try {
         // Check if it's extension request
         const isExtension = req.headers['x-extension-key'] || req.body.source === 'extension';
