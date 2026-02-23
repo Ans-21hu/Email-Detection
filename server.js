@@ -714,7 +714,7 @@ app.get('/profile.html', (req, res) => {
 // ==================== AUTHENTICATION ROUTES ====================
 
 // Register new user
-app.post('/api/auth/register', async (req, res) => {
+app.post(['/api/auth/register', '/auth/register'], async (req, res) => {
     try {
         const { username, email, password, fullName } = req.body;
 
@@ -820,7 +820,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Login user
-app.post('/api/auth/login', async (req, res) => {
+app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
     try {
         const { email, password } = req.body;
 
