@@ -889,10 +889,14 @@ app.post(['/api/auth/login', '/auth/login', '/api/api/auth/login'], async (req, 
         });
 
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('CRITICAL LOGIN ERROR:', {
+            message: error.message,
+            stack: error.stack,
+            body: req.body // Log body to see if email/pass are missing or weird
+        });
         res.status(500).json({
             success: false,
-            message: 'Server error during login'
+            message: 'Server error during login: ' + error.message
         });
     }
 });
