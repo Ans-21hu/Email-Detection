@@ -42,17 +42,25 @@ app.use(cors({
 app.use(express.json());
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/email_analyzer', {
+const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/email_analyzer';
+console.log('🔄 Attempting to connect to MongoDB...');
+// Mask password in URI if present for security
+const maskedURI = mongoURI.replace(/:([^:@]{1,})@/, ':****@');
+console.log(`📡 URI: ${maskedURI}`);
+
+mongoose.connect(mongoURI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000 // Timeout after 5s instead of 30s
 })
     .then(() => console.log('✅ MongoDB Connected Successfully'))
     .catch(err => {
         console.log('❌ MongoDB Connection Error:', err.message);
-        console.log('\n⚠️  Please start MongoDB:');
-        console.log('Windows: net start MongoDB');
-        console.log('Mac: brew services start mongodb-community');
-        console.log('Linux: sudo systemctl start mongod');
+        console.log('🔍 Error Code:', err.code);
+        console.log('\n⚠️  Troubleshooting Steps:');
+        console.log('1. Check if MongoDB service is running: sudo systemctl status mongod');
+        console.log('2. Check if MONGODB_URI is correct in your .env file');
+        console.log('3. Ensure your server IP is whitelisted if using MongoDB Atlas');
     });
 
 // ✅ Serve Static Files from public folder

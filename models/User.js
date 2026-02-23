@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
     firstName: {
@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema({
     },
     trialEndDate: {
         type: Date,
-        default: function() {
+        default: function () {
             const date = new Date();
             date.setDate(date.getDate() + 14); // 14 days trial
             return date;
@@ -64,9 +64,9 @@ const userSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
-    
+
     try {
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);
@@ -77,7 +77,7 @@ userSchema.pre('save', async function(next) {
 });
 
 // Auto-generate username if not provided
-userSchema.pre('save', function(next) {
+userSchema.pre('save', function (next) {
     if (!this.username) {
         this.username = `${this.firstName.toLowerCase()}${this.lastName.toLowerCase()}${Date.now().toString().slice(-4)}`;
     }
@@ -85,12 +85,12 @@ userSchema.pre('save', function(next) {
 });
 
 // Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
 
 // Virtual for full name
-userSchema.virtual('fullName').get(function() {
+userSchema.virtual('fullName').get(function () {
     return `${this.firstName} ${this.lastName}`;
 });
 
