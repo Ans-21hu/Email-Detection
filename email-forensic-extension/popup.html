@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Forensic Analyzer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --neon-primary: #0ff0fc;
+            --neon-secondary: #ff00ff;
+            --neon-success: #00ff9d;
+            --neon-warning: #ffd800;
+            --neon-danger: #ff0055;
+            --dark-bg: #0a0a14;
+            --darker-bg: #050510;
+            --card-bg: rgba(20, 20, 40, 0.8);
+            --text-light: #f0f0ff;
+            --text-dim: #a0a0c0;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            width: 800px;
+            height: 650px;
+            background: linear-gradient(135deg, #0a0a14 0%, #151530 100%);
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: var(--dark-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Header */
+        .app-header {
+            background: rgba(10, 10, 20, 0.95);
+            padding: 20px 25px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(15, 240, 252, 0.2);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .brand-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 22px;
+            box-shadow: 0 0 15px var(--neon-primary), 0 0 30px rgba(15, 240, 252, 0.3);
+        }
+
+        .brand-text h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+            text-shadow: 0 0 10px rgba(15, 240, 252, 0.5);
+        }
+
+        .brand-text .subtitle {
+            font-size: 0.9rem;
+            color: var(--neon-primary);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 25px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-primary);
+            display: block;
+            text-shadow: 0 0 8px var(--neon-primary);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* Card Design */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(15, 240, 252, 0.1);
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(15, 240, 252, 0.1);
+            border: 1px solid rgba(15, 240, 252, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(15, 240, 252, 0.2);
+        }
+
+        .card-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 0 15px var(--neon-primary);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-light);
+            flex: 1;
+        }
+
+        /* Email Input Area */
+        .email-input-container {
+            position: relative;
+        }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .input-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .clear-btn {
+            background: transparent;
+            border: 2px solid rgba(255, 0, 85, 0.3);
+            color: var(--neon-danger);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        .clear-btn:hover {
+            background: var(--neon-danger);
+            color: white;
+            border-color: var(--neon-danger);
+            box-shadow: 0 0 15px var(--neon-danger);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 180px;
+            padding: 20px;
+            border: 2px solid rgba(15, 240, 252, 0.3);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            resize: vertical;
+            transition: var(--transition);
+            background: rgba(10, 10, 20, 0.6);
+            color: var(--text-light);
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--neon-primary);
+            background: rgba(10, 10, 30, 0.8);
+            box-shadow: 0 0 0 3px rgba(15, 240, 252, 0.2), 0 0 15px var(--neon-primary);
+        }
+
+        /* Button Styles */
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: var(--transition);
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+            color: white;
+            box-shadow: 0 4px 15px rgba(15, 240, 252, 0.4), 0 0 20px rgba(255, 0, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(15, 240, 252, 0.6), 0 0 30px rgba(255, 0, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(15, 240, 252, 0.1);
+            color: var(--neon-primary);
+            border: 2px solid var(--neon-primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(15, 240, 252, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--neon-primary);
+        }
+
+        /* Quick Actions */
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .action-card {
+            background: rgba(20, 20, 40, 0.8);
+            border-radius: 14px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid transparent;
+        }
+
+        .action-card:hover {
+            border-color: var(--neon-primary);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 0 0 20px rgba(15, 240, 252, 0.2);
+        }
+
+        .action-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .action-text h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+
+        .action-text p {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        .analysis-section {
+            display: none;
+        }
+
+        .back-btn {
+            background: transparent;
+            border: none;
+            color: var(--neon-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 10px 0;
+            transition: var(--transition);
+        }
+
+        .back-btn:hover {
+            color: var(--neon-secondary);
+            transform: translateX(-5px);
+            text-shadow: 0 0 10px var(--neon-primary);
+        }
+
+        .results-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .result-card {
+            background: rgba(20, 20, 40, 0.8);
+            border-radius: 14px;
+            padding: 20px;
+            border-left: 5px solid var(--neon-primary);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .result-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .result-content {
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        .risk-meter {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(15, 240, 252, 0.1), rgba(255, 0, 255, 0.1));
+            border-radius: 16px;
+            margin: 20px 0;
+            border: 1px solid rgba(15, 240, 252, 0.2);
+        }
+
+        .risk-score {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+            text-shadow: 0 0 20px rgba(15, 240, 252, 0.5);
+        }
+
+        .risk-level {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--neon-primary);
+            margin: 10px 0;
+            text-shadow: 0 0 10px var(--neon-primary);
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 20, 0.95);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-content {
+            text-align: center;
+            max-width: 400px;
+            padding: 40px;
+            background: rgba(20, 20, 40, 0.9);
+            border-radius: 20px;
+            border: 1px solid rgba(15, 240, 252, 0.2);
+            box-shadow: 0 0 30px rgba(15, 240, 252, 0.2);
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(15, 240, 252, 0.2);
+            border-top-color: var(--neon-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 25px;
+            box-shadow: 0 0 15px var(--neon-primary);
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--neon-primary);
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px var(--neon-primary);
+        }
+
+        .loading-subtext {
+            color: var(--text-dim);
+            font-size: 1rem;
+            margin-bottom: 25px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(15, 240, 252, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-primary), var(--neon-secondary));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+            box-shadow: 0 0 10px var(--neon-primary);
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: rgba(10, 10, 20, 0.95);
+            padding: 15px 25px;
+            border-top: 1px solid rgba(15, 240, 252, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        #statusText {
+            color: white !important;
+        }
+
+        .email-count {
+            color: white !important;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--neon-success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px var(--neon-success);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 10px var(--neon-success);
+            }
+
+            50% {
+                opacity: 0.5;
+                box-shadow: 0 0 5px var(--neon-success);
+            }
+        }
+
+        .email-count {
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 240, 252, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-primary);
+            border-radius: 4px;
+            box-shadow: 0 0 10px var(--neon-primary);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-secondary);
+            box-shadow: 0 0 15px var(--neon-secondary);
+        }
+
+        /* Utility Classes */
+        .d-none {
+            display: none !important;
+        }
+
+        .d-flex {
+            display: flex !important;
+        }
+
+        .mb-3 {
+            margin-bottom: 15px;
+        }
+
+        .mt-3 {
+            margin-top: 15px;
+        }
+
+        .mb-4 {
+            margin-bottom: 20px;
+        }
+
+        .mt-4 {
+            margin-top: 20px;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .features-grid div {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(15, 240, 252, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(15, 240, 252, 0.1);
+            transition: var(--transition);
+        }
+
+        .features-grid div:hover {
+            background: rgba(15, 240, 252, 0.1);
+            border-color: var(--neon-primary);
+            box-shadow: 0 0 15px rgba(15, 240, 252, 0.2);
+        }
+
+        .features-grid div i {
+            color: var(--neon-primary);
+            font-size: 1.2rem;
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        .features-grid div span {
+            font-weight: 500;
+            color: var(--text-light);
+        }
+
+        /* Quick Action Specific Colors */
+        #scanAllBtn .action-icon {
+            background: linear-gradient(135deg, var(--neon-primary), #3a0ca3);
+            box-shadow: 0 0 15px var(--neon-primary);
+        }
+
+        #settingsBtn .action-icon {
+            background: linear-gradient(135deg, var(--neon-success), #118ab2);
+            box-shadow: 0 0 15px var(--neon-success);
+        }
+
+        #reportsBtn .action-icon {
+            background: linear-gradient(135deg, var(--neon-secondary), #f72585);
+            box-shadow: 0 0 15px var(--neon-secondary);
+        }
+
+        /* Quick Action Card specific styling */
+        .action-card:nth-child(1) .action-icon {
+            background: linear-gradient(135deg, var(--neon-primary), #3a0ca3);
+            box-shadow: 0 0 15px var(--neon-primary);
+        }
+
+        .action-card:nth-child(2) .action-icon {
+            background: linear-gradient(135deg, var(--neon-success), #118ab2);
+            box-shadow: 0 0 15px var(--neon-success);
+        }
+
+        .action-card:nth-child(3) .action-icon {
+            background: linear-gradient(135deg, var(--neon-secondary), #f72585);
+            box-shadow: 0 0 15px var(--neon-secondary);
+        }
+
+        /* Card Icon specific gradients */
+        .card-icon[style*="background: linear-gradient(135deg, #ff6b6b, #ff8e53);"] {
+            background: linear-gradient(135deg, var(--neon-danger), #ff8e53) !important;
+            box-shadow: 0 0 15px var(--neon-danger) !important;
+        }
+
+        .card-icon[style*="background: linear-gradient(135deg, #ff9e00, #ff0054);"] {
+            background: linear-gradient(135deg, var(--neon-warning), var(--neon-danger)) !important;
+            box-shadow: 0 0 15px var(--neon-warning) !important;
+        }
+
+        /* Neon Glow for important elements */
+        .brand-icon,
+        .card-icon,
+        .action-icon,
+        .btn-primary,
+        .status-dot {
+            position: relative;
+        }
+
+        .brand-icon::after,
+        .card-icon::after,
+        .action-icon::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: inherit;
+            border-radius: inherit;
+            z-index: -1;
+            filter: blur(8px);
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="app-header">
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>Email Forensic Analyzer</h1>
+                    <span class="subtitle">AI-Powered Email Security</span>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-value" id="scanCount">0</span>
+                    <span class="stat-label">Scans Today</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="threatCount">0</span>
+                    <span class="stat-label">Threats Found</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="successRate">100%</span>
+                    <span class="stat-label">Success Rate</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Setup Section -->
+            <section class="setup-section" id="setupSection">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-link"></i>
+                        </div>
+                        <h2 class="card-title">Link to Dashboard</h2>
+                    </div>
+
+                    <div style="padding: 20px;">
+                        <p style="color: var(--text-dim); margin-bottom: 20px; text-align: center;">
+                            Connect this extension to your Email Forensic Analyzer dashboard to sync reports
+                            automatically.
+                        </p>
+
+                        <div style="margin-bottom: 20px;">
+                            <label
+                                style="display: block; margin-bottom: 8px; color: var(--text-light); font-weight: 500;">Dashboard
+                                Email</label>
+                            <input type="email" id="dashboardEmail" placeholder="Enter you email"
+                                style="width: 100%; padding: 12px; background: rgba(10, 10, 20, 0.6); border: 2px solid rgba(15, 240, 252, 0.3); border-radius: 8px; color: var(--text-light); font-size: 0.9rem;">
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label
+                                style="display: block; margin-bottom: 8px; color: var(--text-light); font-weight: 500;">Dashboard
+                                Password</label>
+                            <input type="password" id="dashboardPassword" placeholder="Enter your password"
+                                style="width: 100%; padding: 12px; background: rgba(10, 10, 20, 0.6); border: 2px solid rgba(15, 240, 252, 0.3); border-radius: 8px; color: var(--text-light); font-size: 0.9rem;">
+                        </div>
+
+                        <div class="btn-group">
+
+                            <button class="btn btn-primary" id="linkDashboardBtn">
+                                <i class="fas fa-link"></i>
+                                Login
+                            </button>
+                        </div>
+
+                        <div class="btn-group" style="margin-top: 10px;">
+                            <button class="btn btn-secondary" id="createAccountBtn">
+                                <i class="fas fa-user-plus"></i>
+                                Create Account
+                            </button>
+                        </div>
+
+                        <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 15px; text-align: center;">
+                            Your credentials are only used to establish the connection and are not stored.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Input Section -->
+            <section class="input-section" id="inputSection" style="display: none;">
+                <div class="card email-input-container">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-envelope-open-text"></i>
+                        </div>
+                        <h2 class="card-title">Email Analysis</h2>
+                    </div>
+
+                    <div class="input-header">
+                        <h3 class="input-title">Analyze Email Content</h3>
+                        <button class="clear-btn" id="clearBtn">
+                            <i class="fas fa-trash-alt"></i> Clear
+                        </button>
+                    </div>
+
+                    <textarea id="emailInput"
+                        placeholder="Paste email content here or click 'Get Current Email' to fetch from Gmail automatically..."></textarea>
+
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" id="getCurrentEmailBtn">
+                            <i class="fas fa-paper-plane"></i>
+                            Get Current Email
+                        </button>
+                        <button class="btn btn-primary" id="analyzeBtn">
+                            <i class="fas fa-search"></i>
+                            Analyze Now
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: linear-gradient(135deg, #ff6b6b, #ff8e53);">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <h2 class="card-title">Quick Actions</h2>
+                    </div>
+
+                    <div class="quick-actions-grid">
+                        <div class="action-card" id="scanAllBtn">
+                            <div class="action-icon" style="background: linear-gradient(135deg, #4361ee, #3a0ca3);">
+                                <i class="fas fa-sync-alt"></i>
+                            </div>
+                            <div class="action-text">
+                                <h4>Scan All</h4>
+                                <p>Complete inbox analysis</p>
+                            </div>
+                        </div>
+
+                        <div class="action-card" id="settingsBtn">
+                            <div class="action-icon" style="background: linear-gradient(135deg, #06d6a0, #118ab2);">
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <div class="action-text">
+                                <h4>Settings</h4>
+                                <p>Configure preferences</p>
+                            </div>
+                        </div>
+
+                        <div class="action-card" id="reportsBtn">
+                            <div class="action-icon" style="background: linear-gradient(135deg, #7209b7, #f72585);">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <div class="action-text">
+                                <h4>Reports</h4>
+                                <p>View analytics</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: linear-gradient(135deg, #ff9e00, #ff0054);">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <h2 class="card-title">Advanced Features</h2>
+                    </div>
+
+                    <div class="features-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <div
+                            style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(15, 240, 252, 0.05); border-radius: 10px; border: 1px solid rgba(15, 240, 252, 0.1);">
+                            <i class="fas fa-fingerprint"
+                                style="color: #0ff0fc; font-size: 1.2rem; text-shadow: 0 0 10px #0ff0fc;"></i>
+                            <span style="font-weight: 500; color: #f0f0ff;">Sender Verification</span>
+                        </div>
+                        <div
+                            style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(15, 240, 252, 0.05); border-radius: 10px; border: 1px solid rgba(15, 240, 252, 0.1);">
+                            <i class="fas fa-link"
+                                style="color: #ff00ff; font-size: 1.2rem; text-shadow: 0 0 10px #ff00ff;"></i>
+                            <span style="font-weight: 500; color: #f0f0ff;">Link Analysis</span>
+                        </div>
+                        <div
+                            style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(15, 240, 252, 0.05); border-radius: 10px; border: 1px solid rgba(15, 240, 252, 0.1);">
+                            <i class="fas fa-code"
+                                style="color: #00ff9d; font-size: 1.2rem; text-shadow: 0 0 10px #00ff9d;"></i>
+                            <span style="font-weight: 500; color: #f0f0ff;">Header Inspection</span>
+                        </div>
+                        <div
+                            style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(15, 240, 252, 0.05); border-radius: 10px; border: 1px solid rgba(15, 240, 252, 0.1);">
+                            <i class="fas fa-robot"
+                                style="color: #ff0055; font-size: 1.2rem; text-shadow: 0 0 10px #ff0055;"></i>
+                            <span style="font-weight: 500; color: #f0f0ff;">AI Detection</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analysis Section -->
+            <section class="analysis-section" id="analysisSection">
+                <button class="back-btn" id="backBtn">
+                    <i class="fas fa-arrow-left"></i> Back to Analysis
+                </button>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <h2 class="card-title">Analysis Results</h2>
+                    </div>
+
+                    <div id="analysisResults">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status">
+                <div class="status-dot"></div>
+                <span id="statusText">Ready to analyze</span>
+            </div>
+            <div class="email-count">
+                <span id="emailCount">0 emails analyzed</span>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <h2 class="loading-text" id="loadingText">Analyzing Email</h2>
+                <p class="loading-subtext" id="loadingSubtext">Checking for threats and verifying content...</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+
+</html>

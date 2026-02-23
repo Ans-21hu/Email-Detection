@@ -1,0 +1,25 @@
+/* Extract and copy all CSS from your frontend <style> tags here */
+/* I'm showing key parts only - you should copy the complete CSS */
+
+:root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --secondary: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --dark: #1e293b;
+    --light: #f8fafc;
+    --gray: #64748b;
+    --gray-light: #e2e8f0;
+    --border: #cbd5e1;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Copy all your existing CSS styles here */
+/* From line 8 to line 847 of your frontend CSS */
