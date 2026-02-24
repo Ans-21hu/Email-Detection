@@ -97,6 +97,14 @@ function getExtensionLimits(subscriptionPlan) {
             aiDetection: true,
             realTime: true
         },
+        enterprise: {
+            dailyScans: 50,
+            monthlyScans: 1500,
+            concurrentScans: 20,
+            historyDays: 90,
+            aiDetection: true,
+            realTime: true
+        },
         elite: {
             dailyScans: 50,
             monthlyScans: 1500,
@@ -393,7 +401,7 @@ const userSchema = new mongoose.Schema({
     subscriptionPlan: {
         type: String,
         default: 'free',
-        enum: ['free', 'pro', 'elite']
+        enum: ['free', 'pro', 'enterprise', 'elite']
     },
     subscriptionStatus: {
         type: String,
@@ -462,7 +470,7 @@ const extensionInstallSchema = new mongoose.Schema({
     subscriptionPlan: {
         type: String,
         default: 'free',
-        enum: ['free', 'pro', 'elite']
+        enum: ['free', 'pro', 'enterprise', 'elite']
     },
     isActive: {
         type: Boolean,
@@ -1254,7 +1262,7 @@ app.post(['/api/extension/register', '/extension/register', '/api/api/extension/
                 id: newInstall._id,
                 extensionId,
                 apiKey: extensionApiKey,
-                subscriptionPlan: newInstall.subscriptionPlan,
+                subscriptionPlan: newInstall.subscriptionPlan === 'enterprise' ? 'elite' : newInstall.subscriptionPlan,
                 limits: getExtensionLimits(newInstall.subscriptionPlan),
                 webhookUrl: `http://localhost:${process.env.PORT || 3000}/api/extension/${extensionId}/webhook`
             }
@@ -1323,6 +1331,9 @@ app.post(['/api/extension/auth', '/extension/auth', '/api/api/extension/auth'], 
             { expiresIn: '24h' }
         );
 
+        // Map 'enterprise' to 'elite' for the extension response
+        const planToReturn = user.subscriptionPlan === 'enterprise' ? 'elite' : user.subscriptionPlan;
+
         res.json({
             success: true,
             message: 'Extension authenticated',
@@ -1331,14 +1342,15 @@ app.post(['/api/extension/auth', '/extension/auth', '/api/api/extension/auth'], 
                 id: user._id,
                 username: user.username,
                 email: user.email,
-                subscriptionPlan: user.subscriptionPlan,
+                subscriptionPlan: planToReturn,
                 limits: getExtensionLimits(user.subscriptionPlan)
             },
             extension: {
                 id: extension._id,
                 extensionId,
                 isActive: extension.isActive,
-                lastActive: extension.lastActive
+                lastActive: extension.lastActive,
+                subscriptionPlan: planToReturn
             }
         });
 

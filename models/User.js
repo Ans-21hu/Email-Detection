@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
     },
     subscriptionPlan: {
         type: String,
-        enum: ['free', 'pro', 'elite'],
+        enum: ['free', 'pro', 'enterprise', 'elite'],
         default: 'pro'
     },
     trialEndDate: {
