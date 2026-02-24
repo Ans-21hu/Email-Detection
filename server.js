@@ -64,7 +64,9 @@ mongoose.connect(mongoURI, {
     });
 
 // ✅ Serve Static Files from public folder
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+    extensions: ['html']
+}));
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -726,21 +728,37 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// ✅ Serve specific HTML files
-app.get('/login.html', (req, res) => {
+// ✅ Serve specific HTML files without .html extensions
+app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-app.get('/registration.html', (req, res) => {
+app.get('/registration', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'registration.html'));
 });
 
-app.get('/dashboard.html', (req, res) => {
+app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-app.get('/profile.html', (req, res) => {
+app.get('/profile', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'profile.html'));
+});
+
+app.get('/privacy-policy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html'));
+});
+
+app.get('/terms-conditions', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'terms-conditions.html'));
+});
+
+app.get('/refund-policy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'refund-policy.html'));
+});
+
+app.get('/contact-us', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'contact-us.html'));
 });
 
 // ==================== AUTHENTICATION ROUTES ====================

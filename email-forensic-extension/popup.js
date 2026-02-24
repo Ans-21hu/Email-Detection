@@ -328,7 +328,6 @@ function setupEventListeners() {
     }
 
 
-
     // Back button
     document.getElementById('backBtn').addEventListener('click', goBack);
 

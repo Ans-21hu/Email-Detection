@@ -784,13 +784,13 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <a href="dashboard.html" class="logo">
+            <a href="dashboard" class="logo">
                 <div class="logo-icon">EA</div>
                 <span class="logo-text">EmailAnalyzer</span>
             </a>
 
             <div class="nav-buttons">
-                <a href="dashboard.html" class="btn btn-secondary">
+                <a href="dashboard" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i>
                     Back to Dashboard
                 </a>
@@ -1358,7 +1358,7 @@
                     <h4 style="color: var(--light); margin-bottom: 20px;">Support</h4>
                     <ul
                         style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;">
-                        <li><a href="contact-us.html"
+                        <li><a href="contact-us">
                                 style="color: var(--gray); text-decoration: none; font-size: 0.9rem;">Contact Us</a>
                         </li>
                         <li><a href="#" style="color: var(--gray); text-decoration: none; font-size: 0.9rem;">Help
@@ -1371,13 +1371,13 @@
                     <h4 style="color: var(--light); margin-bottom: 20px;">Legal</h4>
                     <ul
                         style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;">
-                        <li><a href="privacy-policy.html"
+                        <li><a href="privacy-policy">
                                 style="color: var(--gray); text-decoration: none; font-size: 0.9rem;">Privacy Policy</a>
                         </li>
-                        <li><a href="terms-conditions.html"
+                        <li><a href="terms-conditions">
                                 style="color: var(--gray); text-decoration: none; font-size: 0.9rem;">Terms &
                                 Conditions</a></li>
-                        <li><a href="refund-policy.html"
+                        <li><a href="refund-policy">
                                 style="color: var(--gray); text-decoration: none; font-size: 0.9rem;">Refund Policy</a>
                         </li>
                     </ul>
@@ -1459,7 +1459,7 @@
         function checkAuth() {
             const token = localStorage.getItem('token');
             if (!token) {
-                window.location.href = 'login.html';
+                window.location.href = 'login';
                 return false;
             }
             return true;
@@ -1522,7 +1522,7 @@
 
                 if (response.status === 401) {
                     localStorage.removeItem('token');
-                    window.location.href = 'login.html';
+                    window.location.href = 'login';
                     return;
                 }
 
@@ -2326,7 +2326,7 @@
                 const token = localStorage.getItem('token');
                 if (!token) {
                     showError('Please login to continue');
-                    window.location.href = 'login.html';
+                    window.location.href = 'login';
                     return;
                 }
 
@@ -2455,7 +2455,7 @@
                     alert('Account deleted successfully. You will be redirected to the login page.');
                     localStorage.removeItem('token');
                     localStorage.removeItem('userPreferences');
-                    window.location.href = 'login.html';
+                    window.location.href = 'login';
                 } else {
                     showError(data.message || 'Failed to delete account');
                 }
@@ -2526,7 +2526,7 @@
 
                 setTimeout(() => {
                     localStorage.removeItem('token');
-                    window.location.href = 'login.html';
+                    window.location.href = 'login';
                 }, 500);
             }
         }
