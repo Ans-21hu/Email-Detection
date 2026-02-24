@@ -1078,6 +1078,116 @@ app.post('/api/payment/verify-payment', authenticateToken, async (req, res) => {
     }
 });
 
+// ==================== USER PROFILE ROUTES ====================
+
+// Get user profile (dashboard + extension use this on startup to sync plan)
+app.get(['/api/user/profile', '/user/profile', '/api/api/user/profile'], authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Calculate subscription status
+        const now = new Date();
+        let subscriptionActive = user.subscriptionPlan !== 'free';
+        if (user.subscriptionEndDate && new Date(user.subscriptionEndDate) < now) {
+            // Plan expired — downgrade to free
+            subscriptionActive = false;
+            await User.findByIdAndUpdate(req.user.id, {
+                subscriptionPlan: 'free',
+                subscriptionStatus: 'expired'
+            });
+        }
+
+        const planLimits = {
+            free: { dailyScans: 3, label: 'Free' },
+            pro: { dailyScans: 15, label: 'Pro' },
+            enterprise: { dailyScans: 50, label: 'Enterprise' }
+        };
+
+        const currentPlan = subscriptionActive ? user.subscriptionPlan : 'free';
+        const limits = planLimits[currentPlan] || planLimits.free;
+
+        res.json({
+            success: true,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                fullName: user.fullName,
+                subscriptionPlan: currentPlan,
+                subscriptionStatus: subscriptionActive ? 'active' : user.subscriptionStatus,
+                subscriptionStartDate: user.subscriptionStartDate,
+                subscriptionEndDate: user.subscriptionEndDate,
+                totalScans: user.totalScans,
+                createdAt: user.createdAt,
+                lastLogin: user.lastLogin,
+                dailyLimit: limits.dailyScans,
+                planLabel: limits.label
+            }
+        });
+
+    } catch (error) {
+        console.error('Profile fetch error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching profile'
+        });
+    }
+});
+
+// Extension authentication + plan sync endpoint
+app.post(['/api/extension/auth', '/extension/auth', '/api/api/extension/auth'], authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Check if subscription is still valid
+        const now = new Date();
+        let currentPlan = user.subscriptionPlan;
+        if (user.subscriptionEndDate && new Date(user.subscriptionEndDate) < now && currentPlan !== 'free') {
+            currentPlan = 'free';
+            await User.findByIdAndUpdate(req.user.id, {
+                subscriptionPlan: 'free',
+                subscriptionStatus: 'expired'
+            });
+        }
+
+        const planLimits = { free: 3, pro: 15, enterprise: 50 };
+
+        res.json({
+            success: true,
+            authenticated: true,
+            user: {
+                id: user._id,
+                email: user.email,
+                username: user.username,
+                fullName: user.fullName,
+                subscriptionPlan: currentPlan,
+                dailyLimit: planLimits[currentPlan] || 3
+            }
+        });
+
+    } catch (error) {
+        console.error('Extension auth error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Extension authentication failed'
+        });
+    }
+});
+
 // ==================== EXTENSION INTEGRATION ROUTES ====================
 
 // Extension Registration/Installation
@@ -2669,7 +2779,9 @@ app.get('/api/health', (req, res) => {
             '/api/subscription',
             '/api/extension/register',
             '/api/extension/auth',
-            '/api/extension/reports/sync'
+            '/api/extension/reports/sync',
+            '/api/payment/create-order',
+            '/api/payment/verify-payment'
         ]
     });
 });

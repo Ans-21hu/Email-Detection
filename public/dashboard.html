@@ -2026,6 +2026,61 @@
                 .replace(/'/g, '&#039;');
         }
 
+        // Show a plan upgrade success toast notification
+        function showUpgradeSuccess(plan) {
+            const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed; top: 30px; right: 30px; z-index: 9999;
+                background: linear-gradient(135deg, #10b981, #059669);
+                color: white; padding: 16px 24px; border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(16,185,129,0.4);
+                font-weight: 600; font-size: 1rem;
+                display: flex; align-items: center; gap: 12px;
+                animation: slideIn 0.4s ease;
+            `;
+            toast.innerHTML = `<i class="fas fa-check-circle" style="font-size:1.4rem;"></i>
+                <div>
+                    <div>Plan Upgraded! 🎉</div>
+                    <div style="font-size:0.85rem; font-weight:400; margin-top:2px;">You are now on the <strong>${planLabel}</strong> plan</div>
+                </div>`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        // Update subscription section plan cards after upgrade
+        function updateSubscriptionCards(activePlan) {
+            // Update the plan cards in subscription section
+            const proBtn = document.querySelector('button[onclick*="startPayment(99"]') ||
+                document.querySelector('button[onclick*="startPayment(99, \'pro\')"]');
+            const entBtn = document.querySelector('button[onclick*="startPayment(199"]') ||
+                document.querySelector('button[onclick*="startPayment(199, \'enterprise\')"]');
+            const freePlanBtn = document.querySelector('button[disabled]');
+
+            if (activePlan === 'pro') {
+                if (proBtn) {
+                    proBtn.textContent = '✓ Current Plan';
+                    proBtn.disabled = true;
+                    proBtn.classList.remove('btn-primary');
+                    proBtn.classList.add('btn-secondary');
+                }
+                if (freePlanBtn) {
+                    freePlanBtn.textContent = 'Downgraded';
+                }
+            } else if (activePlan === 'enterprise') {
+                if (proBtn) {
+                    proBtn.textContent = 'Downgrade';
+                    proBtn.disabled = false;
+                }
+                if (entBtn) {
+                    entBtn.textContent = '✓ Current Plan';
+                    entBtn.disabled = true;
+                    entBtn.classList.remove('btn-secondary');
+                    entBtn.classList.add('btn-primary');
+                }
+            }
+        }
+
         async function startPayment(amount, plan) {
             try {
                 // showLoading('subscriptionSection'); 
@@ -2080,15 +2135,21 @@
                             const verifyData = await verifyResponse.json();
 
                             if (verifyData.success) {
-                                alert('Payment Successful! Plan upgraded.');
-                                window.location.reload();
+                                // Show success and freshen user profile + subscription UI
+                                showUpgradeSuccess(plan);
+                                await loadUserProfile(); // Refresh plan badge in header
+                                updateSubscriptionCards(plan); // Update subscription section
+
+                                // Close upgrade modal if open
+                                const modal = document.getElementById('upgradeModal');
+                                if (modal) modal.style.display = 'none';
                             } else {
-                                alert('Payment verification failed.');
+                                alert('Payment verification failed: ' + (verifyData.message || 'Unknown error'));
                             }
 
                         } catch (error) {
                             console.error('Verification error:', error);
-                            alert('Payment verification failed');
+                            alert('Payment verification failed. Please contact support.');
                         }
                     },
                     theme: {
