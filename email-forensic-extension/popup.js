@@ -944,9 +944,8 @@ async function reauthenticate() {
                 extensionToken = result.token;
                 userInfo = { apiKey: data.apiKey, ...result.extension };
                 isLinked = true;
-                // Update plan if returned
-                if (result.extension.subscriptionPlan) {
-                    await storage.set({ subscriptionPlan: result.extension.subscriptionPlan });
+                if (result.user && result.user.subscriptionPlan) {
+                    await storage.set({ subscriptionPlan: result.user.subscriptionPlan });
                 }
                 return true;
             }

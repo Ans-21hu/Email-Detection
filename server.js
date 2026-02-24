@@ -97,7 +97,7 @@ function getExtensionLimits(subscriptionPlan) {
             aiDetection: true,
             realTime: true
         },
-        enterprise: {
+        elite: {
             dailyScans: 50,
             monthlyScans: 1500,
             concurrentScans: 20,
@@ -393,7 +393,7 @@ const userSchema = new mongoose.Schema({
     subscriptionPlan: {
         type: String,
         default: 'free',
-        enum: ['free', 'pro', 'enterprise']
+        enum: ['free', 'pro', 'elite']
     },
     subscriptionStatus: {
         type: String,
@@ -462,7 +462,7 @@ const extensionInstallSchema = new mongoose.Schema({
     subscriptionPlan: {
         type: String,
         default: 'free',
-        enum: ['free', 'pro', 'enterprise']
+        enum: ['free', 'pro', 'elite']
     },
     isActive: {
         type: Boolean,
@@ -1302,7 +1302,7 @@ app.post(['/api/extension/auth', '/extension/auth', '/api/api/extension/auth'], 
         const effectivePlan = await checkSubscriptionStatus(user);
 
         // If plan changed (e.g. expired), update extension record
-        if (effectivePlan !== user.subscriptionPlan) {
+        if (effectivePlan !== extension.subscriptionPlan) {
             extension.subscriptionPlan = effectivePlan;
             await extension.save();
         }
