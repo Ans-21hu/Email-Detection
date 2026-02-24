@@ -1463,46 +1463,88 @@
             }
         }
 
-        // Update reports table
+        // Update reports table (recent 5)
         function updateReportsTable(reports) {
             const tbody = document.getElementById('reportsBody');
             tbody.innerHTML = '';
 
-            // Show only recent 5 reports
+            if (!reports || reports.length === 0) {
+                showNoReports();
+                return;
+            }
+
             const recentReports = reports.slice(0, 5);
-
             recentReports.forEach(report => {
-                const row = document.createElement('tr');
+                const row = createReportRow(report, true);
+                tbody.appendChild(row);
+            });
+        }
 
-                // Risk level class
-                let riskClass = 'risk-low';
-                if (report.riskLevel === 'medium') riskClass = 'risk-medium';
-                if (report.riskLevel === 'high') riskClass = 'risk-high';
+        // Helper to create report row
+        function createReportRow(report, isRecent = false) {
+            const row = document.createElement('tr');
 
-                // Status color
-                let statusColor = 'var(--accent)';
-                if (report.status === 'suspicious') statusColor = 'var(--warning)';
-                if (report.status === 'malicious') statusColor = 'var(--danger)';
+            // Risk level class
+            let riskClass = 'risk-low';
+            if (report.riskLevel === 'medium') riskClass = 'risk-medium';
+            if (report.riskLevel === 'high') riskClass = 'risk-high';
 
+            // Status color
+            let statusColor = 'var(--accent)';
+            if (report.status === 'suspicious') statusColor = 'var(--warning)';
+            if (report.status === 'malicious') statusColor = 'var(--danger)';
+
+            // Standardize ID and Date
+            const reportId = report.id || report._id;
+            const reportDate = report.date || report.analysisDate || new Date().toLocaleDateString();
+            const subject = report.subject || 'No subject';
+            const sender = report.sender || 'Unknown sender';
+            const riskLevel = report.riskLevel || 'low';
+            const riskScore = report.riskScore || 0;
+            const status = report.status || 'safe';
+            const threats = Array.isArray(report.threats) ? report.threats : [];
+
+            if (isRecent) {
                 row.innerHTML = `
-                    <td>${report.date || new Date().toLocaleDateString()}</td>
-                    <td>${report.subject || 'No subject'}</td>
-                    <td>${report.sender || 'Unknown sender'}</td>
-                    <td><span class="risk-badge ${riskClass}">${report.riskLevel || 'low'}</span></td>
-                    <td><span style="color: ${statusColor};">${report.status || 'safe'}</span></td>
+                    <td>${escapeHTML(reportDate)}</td>
+                    <td>${escapeHTML(subject)}</td>
+                    <td>${escapeHTML(sender)}</td>
+                    <td><span class="risk-badge ${riskClass}">${escapeHTML(riskLevel)}</span></td>
+                    <td><span style="color: ${statusColor};">${escapeHTML(status)}</span></td>
                     <td>
                         <div class="action-btns">
-                            <button class="action-btn" onclick="viewReport('${report.id}')" title="View Details">
+                            <button class="action-btn" onclick="viewReport('${escapeHTML(reportId)}')" title="View Details">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="action-btn" onclick="downloadReport('${report.id}')" title="Download">
+                            <button class="action-btn" onclick="downloadReport('${escapeHTML(reportId)}')" title="Download">
                                 <i class="fas fa-download"></i>
                             </button>
                         </div>
                     </td>
                 `;
-                tbody.appendChild(row);
-            });
+            } else {
+                row.innerHTML = `
+                    <td>${escapeHTML(reportDate)}</td>
+                    <td>${escapeHTML(subject)}</td>
+                    <td>${escapeHTML(sender)}</td>
+                    <td><span class="risk-badge ${riskClass}">${escapeHTML(riskScore)}</span></td>
+                    <td>${threats.length > 0 ? threats.map(t => escapeHTML(t)).join(', ') : 'None'}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="action-btn" onclick="viewReport('${escapeHTML(reportId)}')" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="action-btn" onclick="downloadReport('${escapeHTML(reportId)}')" title="Download">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="action-btn" onclick="deleteReport('${escapeHTML(reportId)}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+            }
+            return row;
         }
 
         // Show no reports message
@@ -1802,33 +1844,7 @@
             }
 
             reports.forEach(report => {
-                const row = document.createElement('tr');
-
-                // Risk level class
-                let riskClass = 'risk-low';
-                if (report.riskLevel === 'medium') riskClass = 'risk-medium';
-                if (report.riskLevel === 'high') riskClass = 'risk-high';
-
-                row.innerHTML = `
-                    <td>${escapeHTML(report.date) || new Date().toLocaleDateString()}</td>
-                    <td>${escapeHTML(report.subject) || 'No subject'}</td>
-                    <td>${escapeHTML(report.sender) || 'Unknown sender'}</td>
-                    <td><span class="risk-badge ${riskClass}">${escapeHTML(report.riskScore) || '0'}</span></td>
-                    <td>${(report.threats || []).map(t => escapeHTML(t)).join(', ') || 'None'}</td>
-                    <td>
-                        <div class="action-btns">
-                            <button class="action-btn" onclick="viewReport('${escapeHTML(report.id)}')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="action-btn" onclick="downloadReport('${escapeHTML(report.id)}')">
-                                <i class="fas fa-download"></i>
-                            </button>
-                            <button class="action-btn" onclick="deleteReport('${escapeHTML(report.id)}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
+                const row = createReportRow(report, false);
                 tbody.appendChild(row);
             });
         }

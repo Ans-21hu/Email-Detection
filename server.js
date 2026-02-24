@@ -2214,6 +2214,84 @@ app.post(['/api/analysis/analyze', '/analysis/analyze', '/api/api/analysis/analy
     }
 });
 
+// Sync local reports from extension
+app.post(['/api/extension/reports/sync', '/extension/reports/sync'], authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Check daily scan limits (Syncing local results also counts as a scan on the server)
+        const limits = getExtensionLimits(user.subscriptionPlan);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const todayReports = await Report.countDocuments({
+            userId: user._id,
+            analysisDate: { $gte: today }
+        });
+
+        if (todayReports >= limits.dailyScans) {
+            return res.status(429).json({
+                success: false,
+                message: `Daily scan limit reached (${limits.dailyScans}). Sync rejected.`,
+                limitReached: true
+            });
+        }
+
+        const { subject, sender, recipient, content, riskLevel, riskScore, status, threats, details, analysisTime } = req.body;
+
+        if (!subject || !sender) {
+            return res.status(400).json({
+                success: false,
+                message: 'Subject and sender are required for syncing'
+            });
+        }
+
+        const newReport = new Report({
+            userId,
+            subject: (subject || '').toString().trim().replace(/<[^>]*>?/gm, ''),
+            sender: (sender || '').toString().trim().replace(/<[^>]*>?/gm, ''),
+            recipient: recipient ? recipient.trim() : sender.trim(),
+            content: content || '',
+            riskLevel: riskLevel || 'low',
+            riskScore: riskScore || 0,
+            status: status || 'safe',
+            threats: threats || [],
+            details: details || {},
+            analysisTime: analysisTime || 0,
+            analysisDate: new Date(),
+            source: 'extension'
+        });
+
+        await newReport.save();
+
+        // Update user's total scans
+        await User.findByIdAndUpdate(userId, {
+            $inc: { totalScans: 1 }
+        });
+
+        res.json({
+            success: true,
+            message: 'Report synced successfully',
+            reportId: newReport._id
+        });
+
+    } catch (error) {
+        console.error('Sync error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error syncing report'
+        });
+    }
+});
+
 // Get dashboard stats
 app.get(['/api/analysis/stats', '/analysis/stats', '/api/api/analysis/stats'], authenticateToken, async (req, res) => {
     try {
