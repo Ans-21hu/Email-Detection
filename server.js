@@ -82,15 +82,31 @@ function generateExtensionApiKey() {
 function getExtensionLimits(subscriptionPlan) {
     const plans = {
         free: {
-            dailyScans: 10,
-            monthlyScans: 300,
+            dailyScans: 3,
+            monthlyScans: 60,
             concurrentScans: 1,
             historyDays: 7,
             aiDetection: false,
             realTime: false
+        },
+        pro: {
+            dailyScans: 15,
+            monthlyScans: 450,
+            concurrentScans: 5,
+            historyDays: 30,
+            aiDetection: true,
+            realTime: true
+        },
+        enterprise: {
+            dailyScans: 50,
+            monthlyScans: 1500,
+            concurrentScans: 20,
+            historyDays: 90,
+            aiDetection: true,
+            realTime: true
         }
     };
-    return plans[subscriptionPlan] || plans.free;
+    return plans[subscriptionPlan.toLowerCase()] || plans.free;
 }
 
 // Check and update subscription status
@@ -1597,7 +1613,7 @@ app.post('/api/extension/reactivate', async (req, res) => {
 // ==================== USER PROFILE ROUTES ====================
 
 // Get user profile
-app.get('/api/user/profile', authenticateToken, async (req, res) => {
+app.get(['/api/user/profile', '/user/profile', '/api/api/user/profile'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const user = await User.findById(userId).select('-password');
@@ -2087,6 +2103,33 @@ app.post(['/api/analysis/analyze', '/analysis/analyze', '/api/api/analysis/analy
             }
         }
 
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Check daily scan limits
+        const limits = getExtensionLimits(user.subscriptionPlan);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const todayReports = await Report.countDocuments({
+            userId: user._id,
+            analysisDate: { $gte: today }
+        });
+
+        if (todayReports >= limits.dailyScans) {
+            return res.status(429).json({
+                success: false,
+                message: `Daily scan limit reached (${limits.dailyScans}). Please upgrade your plan for more scans.`,
+                limitReached: true,
+                currentPlan: user.subscriptionPlan,
+                limit: limits.dailyScans
+            });
+        }
+
         const { subject, sender, content, recipient } = req.body;
 
         if (!subject || !sender) {
@@ -2172,7 +2215,7 @@ app.post(['/api/analysis/analyze', '/analysis/analyze', '/api/api/analysis/analy
 });
 
 // Get dashboard stats
-app.get('/api/analysis/stats', authenticateToken, async (req, res) => {
+app.get(['/api/analysis/stats', '/analysis/stats', '/api/api/analysis/stats'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
 
@@ -2295,7 +2338,7 @@ app.get('/api/analysis/stats', authenticateToken, async (req, res) => {
 });
 
 // Get all reports
-app.get('/api/analysis/reports', authenticateToken, async (req, res) => {
+app.get(['/api/analysis/reports', '/analysis/reports', '/api/api/analysis/reports'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const { page = 1, limit = 20, status, riskLevel } = req.query;
@@ -2463,7 +2506,7 @@ app.get('/api/subscription', authenticateToken, async (req, res) => {
             },
             pro: {
                 name: 'Pro',
-                price: 9.99,
+                price: 99,
                 features: [
                     'Unlimited emails',
                     'Advanced AI detection',
@@ -2480,7 +2523,7 @@ app.get('/api/subscription', authenticateToken, async (req, res) => {
             },
             enterprise: {
                 name: 'Enterprise',
-                price: 29.99,
+                price: 199,
                 features: [
                     'Unlimited everything',
                     'Custom AI models',

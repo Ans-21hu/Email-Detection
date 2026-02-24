@@ -1561,6 +1561,9 @@
                 const names = user.fullName.split(' ');
                 document.getElementById('firstName').value = names[0] || '';
                 document.getElementById('lastName').value = names.slice(1).join(' ') || '';
+            } else if (user.username) {
+                document.getElementById('firstName').value = user.username;
+                document.getElementById('lastName').value = '';
             }
 
             if (user.phoneNumber) {
