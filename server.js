@@ -1728,7 +1728,7 @@ app.get(['/api/user/profile', '/user/profile', '/api/api/user/profile'], authent
 });
 
 // Update user profile
-app.put('/api/user/profile', authenticateToken, async (req, res) => {
+app.put(['/api/user/profile', '/user/profile', '/api/api/user/profile'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const { fullName, email, username, preferences } = req.body;
@@ -1840,7 +1840,7 @@ app.put('/api/user/profile', authenticateToken, async (req, res) => {
 });
 
 // Change password
-app.put('/api/user/change-password', authenticateToken, async (req, res) => {
+app.put(['/api/user/change-password', '/user/change-password', '/api/api/user/change-password'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const { currentPassword, newPassword } = req.body;
@@ -1910,7 +1910,7 @@ app.put('/api/user/change-password', authenticateToken, async (req, res) => {
 });
 
 // Get user statistics
-app.get('/api/user/stats', authenticateToken, async (req, res) => {
+app.get(['/api/user/stats', '/user/stats', '/api/api/user/stats'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
 
@@ -2002,7 +2002,7 @@ app.get('/api/user/stats', authenticateToken, async (req, res) => {
 });
 
 // Delete user account
-app.delete('/api/user/delete-account', authenticateToken, async (req, res) => {
+app.delete(['/api/user/delete-account', '/user/delete-account', '/api/api/user/delete-account'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const { confirmation, password } = req.body;
@@ -2056,7 +2056,7 @@ app.delete('/api/user/delete-account', authenticateToken, async (req, res) => {
 });
 
 // Update user preferences
-app.patch('/api/user/preferences', authenticateToken, async (req, res) => {
+app.patch(['/api/user/preferences', '/user/preferences', '/api/api/user/preferences'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const preferences = req.body;
