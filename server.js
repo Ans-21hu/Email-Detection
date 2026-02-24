@@ -1149,52 +1149,6 @@ app.get(['/api/user/profile', '/user/profile', '/api/api/user/profile'], authent
     }
 });
 
-// Extension authentication + plan sync endpoint
-app.post(['/api/extension/auth', '/extension/auth', '/api/api/extension/auth'], authenticateToken, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select('-password');
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
-        // Check if subscription is still valid
-        const now = new Date();
-        let currentPlan = user.subscriptionPlan;
-        if (user.subscriptionEndDate && new Date(user.subscriptionEndDate) < now && currentPlan !== 'free') {
-            currentPlan = 'free';
-            await User.findByIdAndUpdate(req.user.id, {
-                subscriptionPlan: 'free',
-                subscriptionStatus: 'expired'
-            });
-        }
-
-        const planLimits = { free: 3, pro: 15, enterprise: 50 };
-
-        res.json({
-            success: true,
-            authenticated: true,
-            user: {
-                id: user._id,
-                email: user.email,
-                username: user.username,
-                fullName: user.fullName,
-                subscriptionPlan: currentPlan,
-                dailyLimit: planLimits[currentPlan] || 3
-            }
-        });
-
-    } catch (error) {
-        console.error('Extension auth error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Extension authentication failed'
-        });
-    }
-});
 
 // ==================== EXTENSION INTEGRATION ROUTES ====================
 
