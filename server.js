@@ -974,7 +974,7 @@ app.post('/api/auth/regenerate-api', authenticateToken, async (req, res) => {
 // ==================== PAYMENT ROUTES ====================
 
 // Create Razorpay Order
-app.post('/api/payment/create-order', authenticateToken, async (req, res) => {
+app.post(['/api/payment/create-order', '/payment/create-order', '/api/api/payment/create-order'], authenticateToken, async (req, res) => {
     try {
         const { amount, currency = 'INR', plan } = req.body;
 
@@ -1017,7 +1017,7 @@ app.post('/api/payment/create-order', authenticateToken, async (req, res) => {
 });
 
 // Verify Payment
-app.post('/api/payment/verify-payment', authenticateToken, async (req, res) => {
+app.post(['/api/payment/verify-payment', '/payment/verify-payment', '/api/api/payment/verify-payment'], authenticateToken, async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = req.body;
         const userId = req.user.id;
