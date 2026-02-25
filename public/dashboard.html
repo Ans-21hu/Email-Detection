@@ -869,7 +869,7 @@
         <!-- Top Bar -->
         <div class="top-bar">
             <div class="page-title">
-                <h1>Dashboard Overview</h1>
+                <h1 id="pageHeaderTitle">Dashboard Overview</h1>
                 <p id="currentDate">Loading...</p>
             </div>
 
@@ -1779,11 +1779,34 @@
             // Hide all sections
             const sections = ['dashboard', 'reports', 'analytics', 'subscription'];
             sections.forEach(id => {
-                document.getElementById(id).style.display = 'none';
+                const element = document.getElementById(id);
+                if (element) element.style.display = 'none';
             });
 
             // Show selected section
-            document.getElementById(sectionId).style.display = 'block';
+            const selectedElement = document.getElementById(sectionId);
+            if (selectedElement) selectedElement.style.display = 'block';
+
+            // Update header title based on section
+            const pageTitle = document.getElementById('pageHeaderTitle');
+            if (pageTitle) {
+                switch (sectionId) {
+                    case 'dashboard':
+                        pageTitle.textContent = 'Dashboard Overview';
+                        break;
+                    case 'reports':
+                        pageTitle.textContent = 'Analysis Reports';
+                        break;
+                    case 'analytics':
+                        pageTitle.textContent = 'Security Analytics';
+                        break;
+                    case 'subscription':
+                        pageTitle.textContent = 'Subscription Status';
+                        break;
+                    default:
+                        pageTitle.textContent = 'Dashboard';
+                }
+            }
 
             // Update active nav item
             document.querySelectorAll('.nav-item').forEach(item => {
@@ -1968,15 +1991,66 @@
         }
 
         // Download report
-        function downloadReport(reportId) {
-            alert(`Downloading report: ${reportId}\n\nThe download will start shortly.`);
+        async function downloadReport(reportId) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/analysis/reports/${reportId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.report) {
+                    const report = data.report;
+                    const dataStr = JSON.stringify(report, null, 2);
+                    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+                    const fileName = `analysis-report-${reportId}-${new Date().getTime()}.json`;
+
+                    const linkElement = document.createElement('a');
+                    linkElement.setAttribute('href', dataUri);
+                    linkElement.setAttribute('download', fileName);
+                    linkElement.click();
+                } else {
+                    alert('Error downloading report: ' + (data.message || 'Report not found'));
+                }
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Error downloading report. Please try again.');
+            }
         }
 
         // Delete report
-        function deleteReport(reportId) {
-            if (confirm('Are you sure you want to delete this report?')) {
-                alert(`Report ${reportId} deleted successfully.`);
-                // In real implementation, call API to delete
+        async function deleteReport(reportId) {
+            if (confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(`${API_BASE_URL}/analysis/reports/${reportId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert('Report deleted successfully.');
+                        // Refresh data
+                        loadDashboardData();
+                        if (document.getElementById('reports').style.display === 'block') {
+                            loadAllReports();
+                        }
+                    } else {
+                        alert('Error deleting report: ' + (data.message || 'Unknown error'));
+                    }
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    alert('Error deleting report. Please try again.');
+                }
             }
         }
 
