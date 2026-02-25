@@ -788,6 +788,11 @@
                 <div class="logo-icon">EA</div>
                 <span class="logo-text">EmailAnalyzer</span>
             </a>
+            <div id="sectionIndicator"
+                style="margin-left: 15px; padding-left: 15px; border-left: 1px solid var(--border); color: var(--gray); font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-chevron-right" style="font-size: 0.7rem; opacity: 0.5;"></i>
+                <span id="activeSectionName">Personal Information</span>
+            </div>
 
             <div class="nav-buttons">
                 <a href="dashboard" class="btn btn-secondary">
@@ -2313,6 +2318,24 @@
             const menuItem = document.querySelector(`.menu-item[onclick*="${sectionId}"]`);
             if (menuItem) {
                 menuItem.classList.add('active');
+            }
+
+            // Update integrated section indicator
+            const activeSectionName = document.getElementById('activeSectionName');
+            if (activeSectionName) {
+                let sectionLabel = '';
+                switch (sectionId) {
+                    case 'profile': sectionLabel = 'Personal Information'; break;
+                    case 'security': sectionLabel = 'Security & Password'; break;
+                    case 'api': sectionLabel = 'API Settings'; break;
+                    case 'stats': sectionLabel = 'Usage Statistics'; break;
+                    case 'preferences': sectionLabel = 'Preferences'; break;
+                    case 'subscription': sectionLabel = 'Subscription Plans'; break;
+                    case 'extension': sectionLabel = 'Forensic Extension'; break;
+                    default: sectionLabel = 'Profile Settings';
+                }
+                activeSectionName.textContent = sectionLabel;
+                document.title = `${sectionLabel} - Email Analyzer`;
             }
 
             // Load data for specific sections
