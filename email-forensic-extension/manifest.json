@@ -1,19 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Email Forensic Analyzer",
-  "version": "2.2",
+  "version": "2.3",
   "description": "Advanced fake email detection system for Gmail",
-  "privacy_policy": {
-    "url": "https://mailxpose.tech/privacy-policy"
-  },
   "permissions": [
     "activeTab",
     "storage",
-    "contextMenus"
+    "contextMenus",
+    "notifications"
   ],
   "host_permissions": [
     "https://mail.google.com/*",
-    "https://mailxpose.tech/*"
+    "https://mailxpose.tech/api/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -21,8 +19,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://mail.google.com/*",
-        "https://mailxpose.tech/*"
+        "https://mail.google.com/*"
       ],
       "js": [
         "content.js"

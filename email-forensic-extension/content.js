@@ -664,28 +664,3 @@ if (document.readyState === 'loading') {
 // Fallback: if Gmail loads very late
 setTimeout(initialize, 3000);
 
-// Listen for dashboard logout
-if (window.location.href.includes('mailxpose.tech')) {
-    window.addEventListener('message', (event) => {
-        // 1. Check if this is the latest script instance
-        if (window._EMAIL_ANALYZER_ID !== _SCRIPT_INST_ID) {
-            return; // Orphaned script instance, ignore
-        }
-
-        // 2. Safely check if extension context is valid
-        try {
-            if (!chrome.runtime || !chrome.runtime.id) return;
-        } catch (e) {
-            return; // Context dead
-        }
-
-        if (event.data && event.data.type === 'DASHBOARD_LOGOUT') {
-            console.log('Dashboard logout detected, syncing with extension...');
-            try {
-                chrome.runtime.sendMessage({ action: 'logout' });
-            } catch (err) {
-                // Silently handle final context death during transmission
-            }
-        }
-    });
-}
