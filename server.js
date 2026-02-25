@@ -952,7 +952,7 @@ app.post(['/api/auth/login', '/auth/login', '/api/api/auth/login'], async (req, 
 });
 
 // Logout user
-app.post('/api/auth/logout', authenticateToken, (req, res) => {
+app.post(['/api/auth/logout', '/auth/logout', '/api/api/auth/logout'], authenticateToken, (req, res) => {
     res.json({
         success: true,
         message: 'Logged out successfully'
@@ -960,7 +960,7 @@ app.post('/api/auth/logout', authenticateToken, (req, res) => {
 });
 
 // Regenerate API key
-app.post('/api/auth/regenerate-api', authenticateToken, async (req, res) => {
+app.post(['/api/auth/regenerate-api', '/auth/regenerate-api', '/api/api/auth/regenerate-api'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const newApiKey = generateApiKey();
@@ -1410,7 +1410,7 @@ app.post(['/api/extension/reports/sync', '/extension/reports/sync', '/api/api/ex
 });
 
 // Get Extension Reports
-app.get('/api/extension/reports', authenticateExtension, async (req, res) => {
+app.get(['/api/extension/reports', '/extension/reports', '/api/api/extension/reports'], authenticateExtension, async (req, res) => {
     try {
         const extensionData = req.extension;
         const { limit = 50, offset = 0 } = req.query;
@@ -1450,7 +1450,7 @@ app.get('/api/extension/reports', authenticateExtension, async (req, res) => {
 });
 
 // Get Extension Stats
-app.get('/api/extension/stats', authenticateExtension, async (req, res) => {
+app.get(['/api/extension/stats', '/extension/stats', '/api/api/extension/stats'], authenticateExtension, async (req, res) => {
     try {
         const extensionData = req.extension;
         const userId = extensionData.userId;
@@ -1507,7 +1507,7 @@ app.get('/api/extension/stats', authenticateExtension, async (req, res) => {
 });
 
 // Extension Webhook Endpoint
-app.post('/api/extension/:extensionId/webhook', async (req, res) => {
+app.post(['/api/extension/:extensionId/webhook', '/extension/:extensionId/webhook', '/api/api/extension/:extensionId/webhook'], async (req, res) => {
     try {
         const { extensionId } = req.params;
         const webhookData = req.body;
@@ -1561,7 +1561,7 @@ app.post('/api/extension/:extensionId/webhook', async (req, res) => {
 });
 
 // Get Extension Settings
-app.get('/api/extension/settings', authenticateExtension, async (req, res) => {
+app.get(['/api/extension/settings', '/extension/settings', '/api/api/extension/settings'], authenticateExtension, async (req, res) => {
     try {
         const extensionData = req.extension;
 
@@ -1599,7 +1599,7 @@ app.get('/api/extension/settings', authenticateExtension, async (req, res) => {
 });
 
 // Update Extension Settings
-app.put('/api/extension/settings', authenticateExtension, async (req, res) => {
+app.put(['/api/extension/settings', '/extension/settings', '/api/api/extension/settings'], authenticateExtension, async (req, res) => {
     try {
         const extensionData = req.extension;
         const settings = req.body;
@@ -1642,7 +1642,7 @@ app.put('/api/extension/settings', authenticateExtension, async (req, res) => {
 });
 
 // Deactivate Extension
-app.post('/api/extension/deactivate', authenticateExtension, async (req, res) => {
+app.post(['/api/extension/deactivate', '/extension/deactivate', '/api/api/extension/deactivate'], authenticateExtension, async (req, res) => {
     try {
         const extensionData = req.extension;
 
@@ -1667,7 +1667,7 @@ app.post('/api/extension/deactivate', authenticateExtension, async (req, res) =>
 });
 
 // Reactivate Extension
-app.post('/api/extension/reactivate', async (req, res) => {
+app.post(['/api/extension/reactivate', '/extension/reactivate', '/api/api/extension/reactivate'], async (req, res) => {
     try {
         const { extensionId, apiKey } = req.body;
 
@@ -2571,7 +2571,7 @@ app.get(['/api/analysis/reports', '/analysis/reports', '/api/api/analysis/report
 });
 
 // Get specific report
-app.get('/api/analysis/reports/:id', authenticateToken, async (req, res) => {
+app.get(['/api/analysis/reports/:id', '/analysis/reports/:id', '/api/api/analysis/reports/:id'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const reportId = req.params.id;
@@ -2616,7 +2616,7 @@ app.get('/api/analysis/reports/:id', authenticateToken, async (req, res) => {
 });
 
 // Delete report
-app.delete('/api/analysis/reports/:id', authenticateToken, async (req, res) => {
+app.delete(['/api/analysis/reports/:id', '/analysis/reports/:id', '/api/api/analysis/reports/:id'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const reportId = req.params.id;
@@ -2655,7 +2655,7 @@ app.delete('/api/analysis/reports/:id', authenticateToken, async (req, res) => {
 // ==================== SUBSCRIPTION ROUTES ====================
 
 // Get subscription info
-app.get('/api/subscription', authenticateToken, async (req, res) => {
+app.get(['/api/subscription', '/subscription', '/api/api/subscription'], authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const user = await User.findById(userId).select('subscriptionPlan createdAt');
@@ -2730,7 +2730,7 @@ app.get('/api/subscription', authenticateToken, async (req, res) => {
 
 // Update subscription - REMOVED for security (Prevent direct bypass)
 // Use Razorpay flow instead
-app.post('/api/subscription/upgrade', authenticateToken, (req, res) => {
+app.post(['/api/subscription/upgrade', '/subscription/upgrade', '/api/api/subscription/upgrade'], authenticateToken, (req, res) => {
     res.status(403).json({
         success: false,
         message: 'Direct upgrades are disabled. Please use the secure payment flow.'
@@ -2740,7 +2740,7 @@ app.post('/api/subscription/upgrade', authenticateToken, (req, res) => {
 // ==================== UTILITY ROUTES ====================
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health', '/api/api/health'], (req, res) => {
     const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
 
     res.json({
@@ -2771,7 +2771,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Get server info
-app.get('/api/server-info', (req, res) => {
+app.get(['/api/server-info', '/server-info', '/api/api/server-info'], (req, res) => {
     res.json({
         success: true,
         app: 'Email Analyzer Pro',
@@ -2784,7 +2784,7 @@ app.get('/api/server-info', (req, res) => {
 });
 
 // Validate token
-app.post('/api/auth/validate', authenticateToken, (req, res) => {
+app.post(['/api/auth/validate', '/auth/validate', '/api/api/auth/validate'], authenticateToken, (req, res) => {
     res.json({
         success: true,
         message: 'Token is valid',
