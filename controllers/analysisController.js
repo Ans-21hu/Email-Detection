@@ -13,7 +13,8 @@ function analyzeEmail(content, sender, subject, headers = {}) {
         indicators: [],
         senderAnalysis: {},
         contentAnalysis: {},
-        headerAnalysis: headers || {}
+        headerAnalysis: headers || {},
+        recommendations: []
     };
 
     // Expanded list of suspicious phishing keywords
@@ -212,9 +213,37 @@ function analyzeEmail(content, sender, subject, headers = {}) {
     if (riskScore >= 70) {
         riskLevel = 'high';
         status = 'malicious';
+        details.recommendations.push('🚨 **CRITICAL RISK**: This email shows multiple phishing indicators. DO NOT INTERACT!');
+        details.recommendations.push('📞 **Report immediately** to your IT security team.');
+        details.recommendations.push('🗑️ **Delete permanently** after reporting.');
+        details.recommendations.push('🔒 **Change passwords** if you clicked any links.');
     } else if (riskScore >= 40) {
         riskLevel = 'medium';
         status = 'suspicious';
+        details.recommendations.push('⚠️ **HIGH RISK**: Exercise extreme caution with this email.');
+        details.recommendations.push('🔍 **Verify sender** through official channels (website, phone call).');
+        details.recommendations.push('🔗 **DO NOT click links** - manually type website addresses if needed.');
+        details.recommendations.push('📧 **Check email headers** for SPF/DKIM authentication.');
+    } else if (riskScore >= 20) {
+        riskLevel = 'medium'; // Treating > 20 as medium for better warning
+        status = 'suspicious';
+        details.recommendations.push('👀 **MODERATE RISK**: Be vigilant with this email.');
+        details.recommendations.push('🏢 **Verify company** through their official website.');
+        details.recommendations.push('🔐 **Watch for requests** for personal or financial information.');
+    } else {
+        riskLevel = 'low';
+        status = 'safe';
+        details.recommendations.push('✅ **LOW RISK**: Email appears legitimate.');
+        details.recommendations.push('👍 **No immediate action** required.');
+        details.recommendations.push('🔒 **Maintain good practices** - always verify unusual requests.');
+    }
+
+    if (allLinks.length > 0) {
+        details.recommendations.push(`🔗 **Links Detected**: ${allLinks.length} links found - always hover before clicking.`);
+    }
+
+    if (hasSuspiciousAttachment) {
+        details.recommendations.push('🎯 **Malicious Attachment**: DO NOT open the attachment. It contains executable or risky code.');
     }
 
     return {
@@ -326,11 +355,22 @@ exports.getDashboardStats = async (req, res) => {
         const userId = req.user.id;
         const reports = await Report.find({ userId });
 
+        const totalScans = reports.length;
+        const threatsFound = reports.filter(r => r.status !== 'safe').length;
+        const successRate = totalScans > 0 ? Math.round(((totalScans - threatsFound) / totalScans) * 100) : 100;
+
+        const totalResponseTime = reports.reduce((acc, r) => acc + (r.analysisTime || 0), 0);
+        const avgResponseTime = totalScans > 0 ? (totalResponseTime / (totalScans * 1000)).toFixed(2) : "0.00";
+
         const stats = {
-            totalScans: reports.length,
-            highRisk: reports.filter(r => r.riskLevel === 'high').length,
-            mediumRisk: reports.filter(r => r.riskLevel === 'medium').length,
-            lowRisk: reports.filter(r => r.riskLevel === 'low').length,
+            totalScans,
+            threatsFound,
+            successRate: `${successRate}%`,
+            avgResponseTime: `${avgResponseTime}s`,
+            totalScansChange: totalScans > 0 ? '+100%' : 'No data yet', // Mocking change for now
+            threatsFoundChange: threatsFound > 0 ? '+100%' : 'No data yet',
+            successRateChange: 'Stable',
+            avgResponseTimeChange: '-0.2s',
             recentActivity: reports.slice(0, 5)
         };
 
