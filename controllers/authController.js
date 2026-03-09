@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
 // Secret key for JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'MailXpose_Secret_789_Security_Key';
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
 // Generate JWT token
 exports.generateToken = (user) => {
@@ -104,6 +104,7 @@ exports.register = async (req, res) => {
         const newUser = new User({
             firstName,
             lastName,
+            fullName: `${firstName} ${lastName}`,
             email: email.toLowerCase(),
             password,
             username: finalUsername
