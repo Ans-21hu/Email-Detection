@@ -1,24 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const analysisController = require('../controllers/analysisController');
-const authController = require('../controllers/authController');
+const { authenticateToken, authenticateExtension } = require('../middleware/auth');
 
 // Receive email analysis from extension
-router.post('/analyze', analysisController.analyzeEmail);
+router.post('/analyze', authenticateExtension, analysisController.analyzeEmail);
 
 // Get all reports
-router.get('/reports', authController.authMiddleware, analysisController.getAllReports);
+router.get('/reports', authenticateToken, analysisController.getAllReports);
 
 // Get a report by ID
-router.get('/reports/:id', authController.authMiddleware, analysisController.getReportById);
+router.get('/reports/:id', authenticateToken, analysisController.getReportById);
 
 // Delete a report by ID
-router.delete('/reports/:id', authController.authMiddleware, analysisController.deleteReport);
+router.delete('/reports/:id', authenticateToken, analysisController.deleteReport);
 
 // Get dashboard stats
-router.get('/stats/dashboard', authController.authMiddleware, analysisController.getDashboardStats);
+router.get('/stats/dashboard', authenticateToken, analysisController.getDashboardStats);
 
 // Get global stats
-router.get('/stats/global', authController.authMiddleware, analysisController.getGlobalStats);
+router.get('/stats/global', authenticateToken, analysisController.getGlobalStats);
 
 module.exports = router;

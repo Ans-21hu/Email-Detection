@@ -259,94 +259,10 @@ const Webhook = mongoose.model('Webhook', webhookSchema);
 // Report model is required from ./models/Report
 
 
+// Models are required from ./models
+const { authenticateToken, authenticateExtension } = require('./middleware/auth');
+
 // ==================== MIDDLEWARE ====================
-
-// Middleware for authentication
-const authenticateToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({
-            success: false,
-            message: 'Access token required'
-        });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET || 'MailXpose_Secret_789_Security_Key', (err, user) => {
-        if (err) {
-            return res.status(403).json({
-                success: false,
-                message: 'Invalid or expired token'
-            });
-        }
-        req.user = user;
-        next();
-    });
-};
-
-// Extension authentication middleware
-function authenticateExtension(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({
-            success: false,
-            message: 'Extension token required'
-        });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET || 'MailXpose_Secret_789_Security_Key', async (err, decoded) => {
-        if (err) {
-            return res.status(403).json({
-                success: false,
-                message: 'Invalid or expired extension token'
-            });
-        }
-
-        // Check if extension exists and is active
-        const extension = await ExtensionInstall.findOne({
-            extensionId: decoded.extensionId,
-            userId: decoded.userId,
-            isActive: true
-        });
-
-        if (!extension) {
-            return res.status(403).json({
-                success: false,
-                message: 'Extension not found or inactive'
-            });
-        }
-
-        // Get fresh user data to check subscription
-        const user = await User.findById(extension.userId);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User associated with extension not found'
-            });
-        }
-
-        // Check/Update subscription status
-        const effectivePlan = await checkSubscriptionStatus(user);
-
-        // Update extension subscription plan if changed in user/DB
-        if (effectivePlan !== extension.subscriptionPlan) {
-            extension.subscriptionPlan = effectivePlan;
-            await extension.save();
-        }
-
-        req.extension = {
-            id: extension._id,
-            extensionId: extension.extensionId,
-            userId: extension.userId,
-            subscriptionPlan: effectivePlan
-        };
-
-        next();
-    });
-}
 
 // Check extension usage
 async function checkExtensionUsage(extensionId) {
