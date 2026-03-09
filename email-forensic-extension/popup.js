@@ -1474,6 +1474,24 @@ function runLayer1(url) {
     let score = 0;
     const lower = url.toLowerCase();
 
+    // Trusted Domains Whitelist
+    const trustedDomains = [
+        'google.com', 'googleapis.com', 'gstatic.com', 'googleusercontent.com',
+        'microsoft.com', 'microsoftonline.com', 'windows.net', 'azure.com',
+        'amazon.com', 'amazonaws.com', 'apple.com', 'icloud.com',
+        'github.com', 'linkedin.com', 'twitter.com', 'mailxpose.tech'
+    ];
+
+    try {
+        const full = url.startsWith('http') ? url : 'https://' + url;
+        const urlObj = new URL(full);
+        const host = urlObj.hostname;
+
+        if (trustedDomains.some(d => host === d || host.endsWith('.' + d))) {
+            return { score: 0, flags: [] };
+        }
+    } catch (e) { }
+
     // TLD checks
     const badTlds = ['.xyz', '.top', '.club', '.online', '.download', '.gq', '.ml', '.tk', '.cf', '.ga', '.icu', '.pw'];
     if (badTlds.some(t => lower.includes(t))) { score += 30; flags.push('Suspicious TLD'); }
@@ -1510,7 +1528,7 @@ function runLayer1(url) {
         // Brand typosquatting
         const brands = ['paypal', 'google', 'amazon', 'apple', 'microsoft', 'facebook', 'netflix',
             'instagram', 'linkedin', 'twitter', 'youtube', 'whatsapp', 'telegram'];
-        const found = brands.filter(b => host.includes(b) && !host.endsWith(b + '.com'));
+        const found = brands.filter(b => host.includes(b) && !host.endsWith(b + '.com') && !host.endsWith(b + '.co') && !host.endsWith(b + '.net'));
         if (found.length > 0) { score += 35; flags.push(`Brand impersonation: ${found.join(', ')}`); }
 
         // Suspicious keywords in path
@@ -2034,7 +2052,18 @@ function buildDetailedResultsHTML(results) {
                 'The following links were identified as potentially malicious. <strong>DO NOT CLICK</strong> these links.' :
                 'This email is flagged as phishing. All links should be considered dangerous. <strong>DO NOT CLICK</strong>.'}
                     </p>
-                    ${(results.suspiciousUrls && results.suspiciousUrls.length > 0 ? results.suspiciousUrls : results.urls).map((url, index) => `
+                    ${(() => {
+                const trustedDomains = ['google.com', 'googleapis.com', 'gstatic.com', 'microsoft.com', 'apple.com', 'mailxpose.tech'];
+                const linkArray = results.suspiciousUrls && results.suspiciousUrls.length > 0 ? results.suspiciousUrls : (results.urls || []);
+
+                return linkArray
+                    .filter(url => {
+                        try {
+                            const host = new URL(url.startsWith('http') ? url : 'https://' + url).hostname;
+                            return !trustedDomains.some(d => host === d || host.endsWith('.' + d));
+                        } catch (e) { return true; }
+                    })
+                    .map((url, index) => `
                         <div style="padding: 12px; margin: 8px 0; background: #fff5f5; border-radius: 8px; border: 1px solid #fed7d7; display: flex; align-items: center; gap: 10px;">
                             <div style="width: 20px; height: 20px; background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0;">
                                 ${index + 1}
@@ -2046,7 +2075,8 @@ function buildDetailedResultsHTML(results) {
                                 <i class="fas fa-ban"></i>
                             </div>
                         </div>
-                    `).join('')}
+                    `).join('');
+            })()}
                 </div>
             </div>
         ` : ''}

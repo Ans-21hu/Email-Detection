@@ -158,18 +158,52 @@ function analyzeEmail(content, sender, subject, headers = {}) {
 
     // Heuristic link check (Per-link score)
     allLinks.forEach(link => {
-        const lowerLink = link.toLowerCase();
-        // Brand impersonation check
-        const brands = ['paypal', 'google', 'amazon', 'apple', 'microsoft', 'netflix', 'bank'];
-        if (brands.some(b => lowerLink.includes(b) && !lowerLink.includes(`${b}.com`) && !lowerLink.includes(`${b}.co`))) {
-            riskScore += 20;
-            details.indicators.push(`Possible brand impersonation in URL: ${link}`);
-        }
-        // Suspicious TLD check
-        const riskyTlds = ['.xyz', '.top', '.club', '.online', '.gq', '.ml', '.tk', '.ga', '.icu'];
-        if (riskyTlds.some(t => lowerLink.endsWith(t) || lowerLink.includes(t + '/'))) {
-            riskScore += 15;
-            details.indicators.push(`Suspicious TLD in URL: ${link}`);
+        try {
+            const lowerLink = link.toLowerCase();
+            let domain = '';
+
+            // Simple domain extraction
+            const domainMatch = lowerLink.match(/https?:\/\/([^/]+)/);
+            if (domainMatch) {
+                domain = domainMatch[1];
+            } else if (lowerLink.startsWith('www.')) {
+                domain = lowerLink.split('/')[0];
+            }
+
+            // Whitelist for highly trusted infrastructure domains
+            const trustedUrlDomains = [
+                'google.com', 'googleapis.com', 'gstatic.com', 'googleusercontent.com',
+                'microsoft.com', 'microsoftonline.com', 'windows.net', 'azure.com',
+                'amazon.com', 'aws.amazon.com', 's3.amazonaws.com',
+                'apple.com', 'icloud.com', 'github.com', 'linkedin.com',
+                'mailxpose.tech'
+            ];
+
+            const isTrustedDomain = trustedUrlDomains.some(d => domain === d || domain.endsWith('.' + d));
+
+            if (!isTrustedDomain) {
+                // Brand impersonation check
+                const brands = ['paypal', 'google', 'amazon', 'apple', 'microsoft', 'netflix', 'bank'];
+                // Only flag if it contains the brand name BUT is NOT a trusted domain/subdomain
+                if (brands.some(b => domain.includes(b))) {
+                    // Check if it's a TLD mismatch or suspicious structure
+                    const isProperDomain = brands.some(b => domain.endsWith(b + '.com') || domain.endsWith(b + '.co') || domain.endsWith(b + '.org'));
+
+                    if (!isProperDomain) {
+                        riskScore += 20;
+                        details.indicators.push(`Possible brand impersonation in URL: ${link}`);
+                    }
+                }
+
+                // Suspicious TLD check
+                const riskyTlds = ['.xyz', '.top', '.club', '.online', '.gq', '.ml', '.tk', '.ga', '.icu', '.download'];
+                if (riskyTlds.some(t => domain.endsWith(t))) {
+                    riskScore += 15;
+                    details.indicators.push(`Suspicious TLD in URL: ${link}`);
+                }
+            }
+        } catch (e) {
+            // Fallback for malformed URLs
         }
     });
 
