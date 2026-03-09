@@ -279,3 +279,84 @@ exports.analyzeEmail = async (req, res) => {
         });
     }
 };
+
+// Get all reports for the current user
+exports.getAllReports = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const reports = await Report.find({ userId }).sort({ createdAt: -1 });
+        res.json({ success: true, reports });
+    } catch (error) {
+        console.error('Get all reports error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching reports' });
+    }
+};
+
+// Get a single report by ID
+exports.getReportById = async (req, res) => {
+    try {
+        const report = await Report.findOne({ _id: req.params.id, userId: req.user.id });
+        if (!report) {
+            return res.status(404).json({ success: false, message: 'Report not found' });
+        }
+        res.json({ success: true, report });
+    } catch (error) {
+        console.error('Get report error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching report' });
+    }
+};
+
+// Delete a report
+exports.deleteReport = async (req, res) => {
+    try {
+        const result = await Report.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
+        if (!result) {
+            return res.status(404).json({ success: false, message: 'Report not found' });
+        }
+        res.json({ success: true, message: 'Report deleted successfully' });
+    } catch (error) {
+        console.error('Delete report error:', error);
+        res.status(500).json({ success: false, message: 'Error deleting report' });
+    }
+};
+
+// Get dashboard stats for the user
+exports.getDashboardStats = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const reports = await Report.find({ userId });
+
+        const stats = {
+            totalScans: reports.length,
+            highRisk: reports.filter(r => r.riskLevel === 'high').length,
+            mediumRisk: reports.filter(r => r.riskLevel === 'medium').length,
+            lowRisk: reports.filter(r => r.riskLevel === 'low').length,
+            recentActivity: reports.slice(0, 5)
+        };
+
+        res.json({ success: true, stats });
+    } catch (error) {
+        console.error('Dashboard stats error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching dashboard stats' });
+    }
+};
+
+// Get global stats (total scans across system)
+exports.getGlobalStats = async (req, res) => {
+    try {
+        const totalReports = await Report.countDocuments();
+        const totalUsers = await User.countDocuments();
+
+        res.json({
+            success: true,
+            stats: {
+                totalAnalyses: totalReports,
+                totalUsers: totalUsers,
+                protectedAccounts: totalUsers * 5 // Mocking some value
+            }
+        });
+    } catch (error) {
+        console.error('Global stats error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching global stats' });
+    }
+};
