@@ -2,46 +2,62 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-    firstName: {
+    username: {
         type: String,
-        required: [true, 'First name is required'],
-        trim: true
-    },
-    lastName: {
-        type: String,
-        required: [true, 'Last name is required'],
-        trim: true
+        required: true,
+        unique: true,
+        trim: true,
+        minlength: 3
     },
     email: {
         type: String,
-        required: [true, 'Email is required'],
+        required: true,
         unique: true,
         lowercase: true,
         trim: true
     },
-    username: {
-        type: String,
-        required: [true, 'Username is required'],
-        unique: true,
-        trim: true
-    },
     password: {
         type: String,
-        required: [true, 'Password is required'],
-        minlength: [6, 'Password must be at least 6 characters']
+        required: true
+    },
+    fullName: {
+        type: String,
+        trim: true
+    },
+    firstName: String, // Keeping for backward compatibility if needed
+    lastName: String,  // Keeping for backward compatibility if needed
+    phoneNumber: {
+        type: String,
+        trim: true
     },
     subscriptionPlan: {
         type: String,
-        enum: ['free', 'pro', 'enterprise', 'elite'],
-        default: 'pro'
+        default: 'free',
+        enum: ['free', 'pro', 'enterprise', 'elite']
     },
-    trialEndDate: {
-        type: Date,
-        default: function () {
-            const date = new Date();
-            date.setDate(date.getDate() + 14); // 14 days trial
-            return date;
-        }
+    subscriptionStatus: {
+        type: String,
+        default: 'active',
+        enum: ['active', 'expired', 'canceled']
+    },
+    subscriptionStartDate: Date,
+    subscriptionEndDate: Date,
+    apiKey: {
+        type: String,
+        unique: true
+    },
+    totalScans: {
+        type: Number,
+        default: 0
+    },
+    preferences: {
+        darkMode: { type: Boolean, default: true },
+        autoScan: { type: Boolean, default: true },
+        detailedReports: { type: Boolean, default: true },
+        emailNotifications: { type: Boolean, default: true },
+        loginAlerts: { type: Boolean, default: true },
+        weeklyDigest: { type: Boolean, default: false },
+        twoFactorAuth: { type: Boolean, default: false }
     },
     role: {
         type: String,
@@ -56,8 +72,10 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    lastLogin: {
-        type: Date
+    lastLogin: Date,
+    lastPasswordChange: {
+        type: Date,
+        default: Date.now
     }
 }, {
     timestamps: true

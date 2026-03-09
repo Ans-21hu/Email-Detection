@@ -9,6 +9,9 @@ require('dotenv').config(); // Loaded first
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const analysisRoutes = require('./routes/analysis');
+const User = require('./models/User');
+const Report = require('./models/Report');
+
 
 
 // Initialize Razorpay
@@ -165,81 +168,8 @@ function verifyWebhookSignature(extensionId, signature, data) {
 
 // ==================== DATABASE SCHEMAS ====================
 
-// User Schema
-const userSchema = new mongoose.Schema({
-    username: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-        minlength: 3
-    },
-    email: {
-        type: String,
-        required: true,
-        unique: true,
-        lowercase: true,
-        trim: true
-    },
-    password: {
-        type: String,
-        required: true
-    },
-    fullName: {
-        type: String,
-        trim: true
-    },
-    phoneNumber: {
-        type: String,
-        trim: true
-    },
-    subscriptionPlan: {
-        type: String,
-        default: 'free',
-        enum: ['free', 'pro', 'enterprise', 'elite']
-    },
-    subscriptionStatus: {
-        type: String,
-        default: 'active',
-        enum: ['active', 'expired', 'canceled']
-    },
-    subscriptionStartDate: {
-        type: Date
-    },
-    subscriptionEndDate: {
-        type: Date
-    },
-    apiKey: {
-        type: String,
-        unique: true
-    },
-    totalScans: {
-        type: Number,
-        default: 0
-    },
-    preferences: {
-        darkMode: { type: Boolean, default: true },
-        autoScan: { type: Boolean, default: true },
-        detailedReports: { type: Boolean, default: true },
-        emailNotifications: { type: Boolean, default: true },
-        loginAlerts: { type: Boolean, default: true },
-        weeklyDigest: { type: Boolean, default: false },
-        twoFactorAuth: { type: Boolean, default: false }
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    lastLogin: {
-        type: Date
-    },
-    lastPasswordChange: {
-        type: Date,
-        default: Date.now
-    }
-});
+// User model is required from ./models/User
 
-const User = mongoose.model('User', userSchema);
 
 // Extension Installation Schema
 const extensionInstallSchema = new mongoose.Schema({
@@ -326,68 +256,8 @@ const webhookSchema = new mongoose.Schema({
 
 const Webhook = mongoose.model('Webhook', webhookSchema);
 
-// Analysis Report Schema
-const reportSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    subject: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    sender: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    recipient: {
-        type: String,
-        trim: true
-    },
-    content: {
-        type: String
-    },
-    riskLevel: {
-        type: String,
-        enum: ['low', 'medium', 'high'],
-        default: 'low'
-    },
-    riskScore: {
-        type: Number,
-        default: 0,
-        min: 0,
-        max: 100
-    },
-    status: {
-        type: String,
-        enum: ['safe', 'suspicious', 'malicious'],
-        default: 'safe'
-    },
-    threats: [{
-        type: String
-    }],
-    analysisDate: {
-        type: Date,
-        default: Date.now
-    },
-    details: {
-        type: Object
-    },
-    analysisTime: {
-        type: Number, // milliseconds
-        default: 0
-    },
-    source: {
-        type: String,
-        enum: ['web', 'extension', 'api'],
-        default: 'web'
-    }
-});
+// Report model is required from ./models/Report
 
-const Report = mongoose.model('Report', reportSchema);
 
 // ==================== MIDDLEWARE ====================
 
@@ -403,7 +273,7 @@ const authenticateToken = (req, res, next) => {
         });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key', (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET || 'MailXpose_Secret_789_Security_Key', (err, user) => {
         if (err) {
             return res.status(403).json({
                 success: false,
@@ -427,7 +297,7 @@ function authenticateExtension(req, res, next) {
         });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key', async (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET || 'MailXpose_Secret_789_Security_Key', async (err, decoded) => {
         if (err) {
             return res.status(403).json({
                 success: false,
@@ -634,7 +504,7 @@ app.post(['/api/auth/register', '/auth/register', '/api/api/auth/register'], asy
                 email: newUser.email,
                 username: newUser.username
             },
-            process.env.JWT_SECRET || 'your_jwt_secret_key',
+            process.env.JWT_SECRET || 'MailXpose_Secret_789_Security_Key',
             { expiresIn: '7d' }
         );
 
@@ -710,7 +580,7 @@ app.post(['/api/auth/login', '/auth/login', '/api/api/auth/login'], async (req, 
                 email: user.email,
                 username: user.username
             },
-            process.env.JWT_SECRET || 'your_jwt_secret_key',
+            process.env.JWT_SECRET || 'MailXpose_Secret_789_Security_Key',
             { expiresIn: '7d' }
         );
 
@@ -1092,7 +962,7 @@ app.post(['/api/extension/auth', '/extension/auth', '/api/api/extension/auth'], 
                 userId: user._id,
                 subscriptionPlan: user.subscriptionPlan
             },
-            process.env.JWT_SECRET || 'your_jwt_secret_key',
+            process.env.JWT_SECRET || 'MailXpose_Secret_789_Security_Key',
             { expiresIn: '24h' }
         );
 

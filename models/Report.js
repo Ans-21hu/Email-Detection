@@ -6,55 +6,58 @@ const reportSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    emailContent: {
+    subject: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
     sender: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
     recipient: {
         type: String,
-        required: true
+        trim: true
     },
-    subject: {
-        type: String,
-        required: true
+    content: {
+        type: String
     },
-    riskScore: {
-        type: Number,
-        required: true,
-        min: 0,
-        max: 100
-    },
+    emailContent: String, // Keeping for backward compatibility
     riskLevel: {
         type: String,
         enum: ['low', 'medium', 'high'],
         default: 'low'
     },
+    riskScore: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
+    },
+    status: {
+        type: String,
+        enum: ['safe', 'suspicious', 'malicious'],
+        default: 'safe'
+    },
     threats: [{
         type: String
     }],
-    recommendations: [{
-        type: String
-    }],
-    attachments: [{
-        name: String,
-        type: String,
-        size: Number
-    }],
-    status: {
-        type: String,
-        enum: ['pending', 'analyzed', 'malicious', 'safe'],
-        default: 'pending'
-    },
-    analysisResult: {
-        type: String
-    },
-    createdAt: {
+    analysisDate: {
         type: Date,
         default: Date.now
+    },
+    details: {
+        type: Object
+    },
+    analysisTime: {
+        type: Number, // milliseconds
+        default: 0
+    },
+    source: {
+        type: String,
+        enum: ['web', 'extension', 'api'],
+        default: 'web'
     }
 }, {
     timestamps: true
