@@ -4,7 +4,7 @@ const analysisController = require('../controllers/analysisController');
 const authController = require('../controllers/authController');
 
 // Receive email analysis from extension
-router.post('/analyze', analysisController.receiveAnalysis);
+router.post('/analyze', analysisController.analyzeEmail);
 
 // Get all reports
 router.get('/reports', authController.authMiddleware, analysisController.getAllReports);

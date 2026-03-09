@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self'; object-src 'self';">
     <title>Email Forensic Analyzer</title>
     <link rel="stylesheet" href="css/all.min.css">
     <style>
@@ -922,7 +923,7 @@
         <div class="app-header">
             <div class="brand">
                 <div class="brand-icon">
-                    <img src="icon.png" alt="Email Forensic Icon">
+                    <img src="icon128.png" alt="Email Forensic Icon">
                 </div>
                 <div class="brand-text">
                     <h1>Email Forensic Analyzer</h1>
@@ -1131,7 +1132,8 @@
                     </div>
 
                     <div class="quick-actions-grid">
-                        <div class="action-card" id="scanAllBtn">
+                        <!-- Hidden to avoid 'Under Construction' rejection -->
+                        <div class="action-card" id="scanAllBtn" style="display: none;">
                             <div class="action-icon">
                                 <i class="fas fa-sync-alt"></i>
                             </div>
@@ -1141,7 +1143,7 @@
                             </div>
                         </div>
 
-                        <div class="action-card" id="settingsBtn">
+                        <div class="action-card" id="settingsBtn" style="display: none;">
                             <div class="action-icon">
                                 <i class="fas fa-cog"></i>
                             </div>

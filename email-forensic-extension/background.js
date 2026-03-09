@@ -100,6 +100,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({ success: true, message: 'Popup opening initiated' });
             break;
 
+        case 'openPopup':
+            console.log('Open popup requested from button');
+            openPopupWindow();
+            sendResponse({ success: true });
+            break;
+
         case 'showPopup':
             console.log('Show popup requested');
             openPopupWindow();

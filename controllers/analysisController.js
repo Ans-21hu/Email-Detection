@@ -16,16 +16,19 @@ function analyzeEmail(content, sender, subject, headers = {}) {
         headerAnalysis: headers || {}
     };
 
-    // Check for suspicious keywords
+    // Expanded list of suspicious phishing keywords
     const suspiciousKeywords = [
         'password', 'urgent', 'immediately', 'click here', 'verify', 'account',
         'suspended', 'locked', 'security', 'login', 'confirm', 'update',
-        'bank', 'paypal', 'amazon', 'microsoft', 'apple', 'google'
+        'bank', 'paypal', 'amazon', 'microsoft', 'apple', 'google',
+        'blocked', 'deleted', 'unusual', 'detected', 'verification', 'renew',
+        'expire', 'alert', 'notice', 'action required', 'billing', 'statement'
     ];
 
     const maliciousKeywords = [
         'wire transfer', 'bitcoin', 'crypto', 'phishing', 'virus', 'malware',
-        'ransomware', 'trojan', 'exploit', 'hack', 'breach', 'compromised'
+        'ransomware', 'trojan', 'exploit', 'hack', 'breach', 'compromised',
+        'credentials', 'secret', 'hacked', 'stolen', 'unauthorized'
     ];
 
     let foundSuspicious = 0;
@@ -35,14 +38,31 @@ function analyzeEmail(content, sender, subject, headers = {}) {
     const subjectLower = subject.toLowerCase();
     const senderLower = sender.toLowerCase();
 
-    // Analyze sender
-    const senderDomain = senderLower.split('@')[1];
-    const suspiciousDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
-    const trustedDomains = ['company.com', 'organization.org', 'edu.in'];
+    // Analyze sender — improved extraction and impersonation check
+    let senderDomain = '';
+    const domainMatch = senderLower.match(/@([^>\s]+)/);
+    if (domainMatch) {
+        senderDomain = domainMatch[1].replace('>', '').trim();
+    } else {
+        senderDomain = senderLower.split('@')[1] || '';
+    }
+
+    const suspiciousDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'protonmail.com'];
+    const trustedDomains = ['company.com', 'organization.org', 'edu.in', 'mailxpose.tech'];
 
     details.senderAnalysis.domain = senderDomain;
-    details.senderAnalysis.isSuspiciousDomain = suspiciousDomains.includes(senderDomain);
-    details.senderAnalysis.isTrustedDomain = trustedDomains.includes(senderDomain);
+    const isGenericDomain = suspiciousDomains.includes(senderDomain);
+    details.senderAnalysis.isSuspiciousDomain = isGenericDomain;
+
+    // Impersonation check: Generic domain + Official-sounding name
+    const officialNames = ['support', 'admin', 'security', 'service', 'account', 'verify', 'billing', 'official'];
+    const hasOfficialName = officialNames.some(name => senderLower.includes(name));
+
+    if (isGenericDomain && hasOfficialName) {
+        riskScore += 35;
+        threats.push('sender_impersonation');
+        details.indicators.push(`Sender Impersonation: "${sender}" is using a generic ${senderDomain} address for an official-sounding name.`);
+    }
 
     // Header Verification (SPF/DKIM)
     if (headers && (headers.spf || headers.dkim)) {
@@ -101,29 +121,56 @@ function analyzeEmail(content, sender, subject, headers = {}) {
         }
     });
 
-    // Check for links
-    const linkRegex = /https?:\/\/[^\s]+/g;
-    const links = content.match(linkRegex) || [];
-    details.contentAnalysis.linkCount = links.length;
+    // Check for links — improved regex catches more URL formats
+    const linkRegex = /https?:\/\/[^\s"'<>)\]]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}[^\s"'<>)\]]*/g;
+    const rawLinks = (content.match(linkRegex) || []).map(l => l.replace(/[.,;:!?]+$/, ''));
+    // Also count DOM-extracted links supplied by the extension (catches hidden href links)
+    const extractedLinks = Array.isArray(headers.extractedLinks) ? headers.extractedLinks : [];
+    const allLinks = [...new Set([...rawLinks, ...extractedLinks])];
+    details.contentAnalysis.linkCount = allLinks.length;
 
-    if (links.length > 0) {
-        riskScore += links.length * 5;
+    if (allLinks.length > 0) {
+        riskScore += Math.min(allLinks.length * 5, 20);
         threats.push('contains_links');
-        details.indicators.push(`Found ${links.length} links in email`);
+        details.indicators.push(`Found ${allLinks.length} link(s) in email (including hidden href links)`);
     }
 
-    // Check for suspicious links
-    const suspiciousLinks = links.filter(link =>
-        link.includes('bit.ly') ||
-        link.includes('tinyurl') ||
-        link.includes('shortener')
+    // Check for suspicious links — expanded list
+    const suspiciousLinkPatterns = [
+        'bit.ly', 'tinyurl.com', 'shorturl.at', 'ow.ly', 'is.gd',
+        'buff.ly', 'goo.gl', 't.co', 'fb.me', 'shorte.st', 'rb.gy',
+        'cutt.ly', 'short.io', 'tiny.cc', 'shortener',
+        '.xyz', '.top', '.club', '.online', '.download', '.gq', '.ml', '.tk', '.cf', '.ga'
+    ];
+    const suspiciousLinks = allLinks.filter(link =>
+        suspiciousLinkPatterns.some(p => link.toLowerCase().includes(p))
     );
 
     if (suspiciousLinks.length > 0) {
-        riskScore += 15;
-        threats.push('suspicious_shortened_links');
-        details.indicators.push(`Found ${suspiciousLinks.length} shortened/suspicious links`);
+        riskScore += 25; // Increased from 15
+        threats.push('suspicious_links_detected');
+        details.indicators.push(`Found ${suspiciousLinks.length} suspicious/shortened links`);
+
+        // Bonus for multiple suspicious links
+        if (suspiciousLinks.length > 2) riskScore += 15;
     }
+
+    // Heuristic link check (Per-link score)
+    allLinks.forEach(link => {
+        const lowerLink = link.toLowerCase();
+        // Brand impersonation check
+        const brands = ['paypal', 'google', 'amazon', 'apple', 'microsoft', 'netflix', 'bank'];
+        if (brands.some(b => lowerLink.includes(b) && !lowerLink.includes(`${b}.com`) && !lowerLink.includes(`${b}.co`))) {
+            riskScore += 20;
+            details.indicators.push(`Possible brand impersonation in URL: ${link}`);
+        }
+        // Suspicious TLD check
+        const riskyTlds = ['.xyz', '.top', '.club', '.online', '.gq', '.ml', '.tk', '.ga', '.icu'];
+        if (riskyTlds.some(t => lowerLink.endsWith(t) || lowerLink.includes(t + '/'))) {
+            riskScore += 15;
+            details.indicators.push(`Suspicious TLD in URL: ${link}`);
+        }
+    });
 
     // Check for attachments
     const attachmentRegex = /\.(exe|zip|rar|js|bat|cmd|scr|pif|vb|vbs|wsf|wsh|msi|docm|xlsm|pptm)/gi;
@@ -145,9 +192,15 @@ function analyzeEmail(content, sender, subject, headers = {}) {
         details.indicators.push('Poor email formatting detected');
     }
 
-    // Add scores from keywords
-    riskScore += foundSuspicious * 5;
-    riskScore += foundMalicious * 15;
+    // Add scores from keywords — increased weights
+    riskScore += foundSuspicious * 8; // Increased from 5
+    riskScore += foundMalicious * 20; // Increased from 15
+
+    // Urgency bonus if many suspicious factors combined
+    if (foundSuspicious > 2 && allLinks.length > 0) {
+        riskScore += 15;
+        details.indicators.push('Combined threat signals: Urgency + Links');
+    }
 
     // Cap risk score at 100
     riskScore = Math.min(Math.max(riskScore, 0), 100);
@@ -187,7 +240,9 @@ exports.analyzeEmail = async (req, res) => {
         }
 
         const startTime = Date.now();
-        const analysisResult = analyzeEmail(content || '', sender, subject, headers || {});
+        // Pass extractedLinks (DOM-harvested hidden links) into headers so analyzeEmail can use them
+        const enrichedHeaders = { ...(headers || {}), extractedLinks: req.body.extractedLinks || [] };
+        const analysisResult = analyzeEmail(content || '', sender, subject, enrichedHeaders);
         const analysisTime = Date.now() - startTime;
 
         const newReport = new Report({

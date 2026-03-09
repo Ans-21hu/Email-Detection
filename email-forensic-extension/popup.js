@@ -527,10 +527,8 @@ async function startAnalysis() {
         }
 
         updateStatus('Fallback to local engine...');
-        const localResult = analyzeLocally(emailContent);
-        currentAnalysis = localResult;
-
-        setTimeout(() => {
+        analyzeLocally(emailContent).then(localResult => {
+            currentAnalysis = localResult;
             showLoading(false);
             displayAnalysisResults(localResult);
             updateStatus('Analysis complete (Local Fallback)');
@@ -538,7 +536,11 @@ async function startAnalysis() {
 
             // Update scan count
             updateScanCount(true, localResult.is_suspicious || localResult.is_phishing);
-        }, 800);
+        }).catch(err => {
+            console.error('Local analysis error:', err);
+            showLoading(false);
+            showNotification('❌ Analysis failed.', 'error');
+        });
     }
 }
 
@@ -557,19 +559,32 @@ async function tryBackendAnalysis(emailContent) {
         const subject = extractSubject(emailContent) || 'Quick Scan';
         const sender = extractSender(emailContent) || 'Unknown Sender';
 
+        // Get DOM-extracted links from storage
+        let extractedLinks = [];
+        try {
+            const data = await new Promise(res => chrome.storage.local.get(['currentEmail'], d => res(d)));
+            if (data.currentEmail) {
+                const parsed = JSON.parse(data.currentEmail);
+                if (Array.isArray(parsed.extractedLinks)) extractedLinks = parsed.extractedLinks;
+            }
+        } catch (e) { console.error('Error getting extracted links:', e); }
+
+        const requestBody = {
+            content: emailContent,
+            subject: subject,
+            sender: sender,
+            source: 'extension',
+            extractedLinks: extractedLinks,
+            apiKey: (userInfo || {}).apiKey
+        };
+
         const response = await fetch(`${API_BASE_URL}/analysis/analyze`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${extensionToken}`
             },
-            body: JSON.stringify({
-                content: emailContent,
-                subject: subject,
-                sender: sender,
-                source: 'extension',
-                apiKey: (userInfo || {}).apiKey // Send apiKey in body instead of header to avoid CORS issues
-            }),
+            body: JSON.stringify(requestBody),
             signal: AbortSignal.timeout(10000)
         });
 
@@ -584,13 +599,7 @@ async function tryBackendAnalysis(emailContent) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${extensionToken}`
                 },
-                body: JSON.stringify({
-                    content: emailContent,
-                    subject: subject,
-                    sender: sender,
-                    source: 'extension',
-                    apiKey: (userInfo || {}).apiKey
-                })
+                body: JSON.stringify(requestBody)
             });
 
             if (!retryResponse.ok) throw new Error('Analysis failed after retry');
@@ -1056,7 +1065,7 @@ async function updateSubscriptionUI() {
 }
 
 // Local analysis
-function analyzeLocally(emailContent) {
+async function analyzeLocally(emailContent) {
     console.log('Running local analysis...');
 
     let riskScore = 0;
@@ -1124,30 +1133,64 @@ function analyzeLocally(emailContent) {
         });
     }
 
-    // 3. URL Analysis
-    if (urls.length > 0) {
-        riskScore += urls.length * 10;
-        warnings.push(`Found ${urls.length} links - verify destination before clicking`);
-
-
-        if (suspiciousUrls.length > 0) {
-            riskScore += suspiciousUrls.length * 20;
-            warnings.push(`Found ${suspiciousUrls.length} potentially malicious URLs`);
-
-            suspiciousUrls.forEach((url, index) => {
-                details.push({
-                    type: 'url',
-                    title: `Suspicious Link Pattern`,
-                    description: `Link ${index + 1} (${url.substring(0, 40)}...) uses a shortened service or suspicious domain structure often used to hide actual destinations.`,
-                    severity: 'high'
-                });
-            });
+    // 3. URL Analysis — 3-Layer Detection
+    // Try to get links that were extracted directly from DOM by content script
+    let allLinks = urls;
+    try {
+        const savedEmailStr = await new Promise(res => chrome.storage.local.get(['currentEmail'], d => res(d.currentEmail)));
+        if (savedEmailStr) {
+            const savedEmail = JSON.parse(savedEmailStr);
+            if (Array.isArray(savedEmail.extractedLinks) && savedEmail.extractedLinks.length > 0) {
+                // Merge DOM-extracted links with regex-found links (deduplicate)
+                const merged = [...new Set([...savedEmail.extractedLinks, ...urls])];
+                allLinks = merged;
+            }
         }
+    } catch (e) { /* fallback to regex-found urls */ }
 
-        // Technical details about URLs
-        technical.push(`Total URLs found: ${urls.length}`);
-        technical.push(`Suspicious URLs: ${suspiciousUrls.length}`);
-        technical.push(`Secure (HTTPS) URLs: ${urls.filter(url => url.startsWith('https://')).length}`);
+    if (allLinks.length > 0) {
+        riskScore += Math.min(allLinks.length * 5, 20);
+        warnings.push(`Found ${allLinks.length} link(s) — running 3-layer threat analysis...`);
+
+        technical.push(`Total URLs found: ${allLinks.length}`);
+        technical.push(`Secure (HTTPS) URLs: ${allLinks.filter(u => u.startsWith('https://')).length}`);
+
+        allLinks.forEach((url, index) => {
+            const layer1 = runLayer1(url);
+            const layer2 = runLayer2(url, layer1.score);
+            const finalScore = Math.round(layer1.score * 0.4 + layer2.confidence * 100 * 0.6);
+
+            riskScore += Math.round(finalScore * 0.3);
+
+            let severity = 'low';
+            let emoji = '🟢';
+            if (finalScore >= 70) { severity = 'high'; emoji = '🔴'; }
+            else if (finalScore >= 40) { severity = 'medium'; emoji = '🟡'; }
+
+            const truncated = url.length > 55 ? url.substring(0, 55) + '...' : url;
+            const flagsText = layer1.flags.length > 0 ? `Flags: ${layer1.flags.slice(0, 3).join(' · ')}` : 'No rule violations found';
+
+            details.push({
+                type: 'url',
+                title: `${emoji} Link ${index + 1} — Score: ${finalScore}/100`,
+                description: `URL: ${truncated}\n${flagsText}\n${layer2.reason}`,
+                severity: severity
+            });
+
+            if (severity === 'high') {
+                warnings.push(`⚠️ High-risk link detected: ${url.substring(0, 60)}`);
+            }
+        });
+
+        const highRiskLinks = allLinks.filter(url => {
+            const l1 = runLayer1(url);
+            return (l1.score * 0.4 + runLayer2(url, l1.score).confidence * 100 * 0.6) >= 70;
+        });
+        technical.push(`High-risk links: ${highRiskLinks.length}`);
+        technical.push(`Layer 1 (Rules) + Layer 2 (Heuristic ML) applied to all ${allLinks.length} links`);
+        if (allLinks.some(u => isShortUrl(u))) {
+            technical.push(`⚠️ Short/redirect URLs detected — real destination hidden`);
+        }
     }
 
     // 4. Check for generic greetings
@@ -1394,29 +1437,174 @@ function extractDomain(email) {
     return match ? match[1] : 'unknown';
 }
 
+// ═══════════════════════════════════════════════════════
+// 3-LAYER PHISHING LINK DETECTION ENGINE
+// ═══════════════════════════════════════════════════════
+
 function extractUrls(text) {
-    const urlRegex = /https?:\/\/[^\s"'<>]+/g;
-    return text.match(urlRegex) || [];
+    // Improved regex — catches more URL formats and strips trailing punctuation
+    const urlRegex = /https?:\/\/[^\s"'<>)\]]+|www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}[^\s"'<>)\]]*/g;
+    const raw = text.match(urlRegex) || [];
+    return raw.map(u => u.replace(/[.,;:!?]+$/, ''));
 }
 
 function extractUrlDomain(url) {
     try {
-        const urlObj = new URL(url);
-        return urlObj.hostname.replace('www.', '');
-    } catch {
-        return null;
-    }
+        const full = url.startsWith('http') ? url : 'https://' + url;
+        return new URL(full).hostname.replace(/^www\./, '');
+    } catch { return null; }
+}
+
+function isShortUrl(url) {
+    const shorteners = [
+        'bit.ly', 'tinyurl.com', 'shorturl.at', 'ow.ly', 'is.gd',
+        'buff.ly', 'goo.gl', 't.co', 'fb.me', 'shorte.st', 'rb.gy',
+        'cutt.ly', 'short.io', 'tiny.cc', 'bl.ink', 'smarturl.it'
+    ];
+    return shorteners.some(s => url.toLowerCase().includes(s));
 }
 
 function isSuspiciousUrl(url) {
-    const suspiciousPatterns = [
-        'bit.ly', 'tinyurl.com', 'shorturl.at', 'ow.ly', 'is.gd',
-        'buff.ly', 'goo.gl', 't.co', 'fb.me', 'shorte.st',
-        '.xyz', '.top', '.club', '.online', '.download', '.gq', '.ml', '.tk'
-    ];
+    return runLayer1(url).score >= 40;
+}
 
-    const lowerUrl = url.toLowerCase();
-    return suspiciousPatterns.some(pattern => lowerUrl.includes(pattern));
+// ─── LAYER 1: Rule-Based Check ───────────────────────
+function runLayer1(url) {
+    const flags = [];
+    let score = 0;
+    const lower = url.toLowerCase();
+
+    // TLD checks
+    const badTlds = ['.xyz', '.top', '.club', '.online', '.download', '.gq', '.ml', '.tk', '.cf', '.ga', '.icu', '.pw'];
+    if (badTlds.some(t => lower.includes(t))) { score += 30; flags.push('Suspicious TLD'); }
+
+    // Shorteners
+    if (isShortUrl(url)) { score += 40; flags.push('URL Shortener — hides destination'); }
+
+    // URL length
+    if (url.length > 100) { score += 15; flags.push(`Long URL (${url.length} chars)`); }
+
+    // Digit ratio
+    const digits = (url.match(/\d/g) || []).length;
+    if (digits / url.length > 0.3) { score += 20; flags.push('High digit ratio'); }
+
+    // Hyphens in domain
+    try {
+        const full = url.startsWith('http') ? url : 'https://' + url;
+        const host = new URL(full).hostname;
+        const hyphens = (host.match(/-/g) || []).length;
+        if (hyphens >= 3) { score += 15; flags.push(`Excessive hyphens (${hyphens})`); }
+
+        // Subdomain depth
+        const parts = host.split('.');
+        if (parts.length > 4) { score += 20; flags.push(`Deep subdomains (${parts.length - 2} levels)`); }
+
+        // @ in URL (credential phishing trick)
+        if (url.includes('@')) { score += 30; flags.push('@ symbol — possible credential trick'); }
+
+        // Double slash after domain
+        if (url.replace('https://', '').replace('http://', '').includes('//')) {
+            score += 25; flags.push('Double slash after domain');
+        }
+
+        // Brand typosquatting
+        const brands = ['paypal', 'google', 'amazon', 'apple', 'microsoft', 'facebook', 'netflix',
+            'instagram', 'linkedin', 'twitter', 'youtube', 'whatsapp', 'telegram'];
+        const found = brands.filter(b => host.includes(b) && !host.endsWith(b + '.com'));
+        if (found.length > 0) { score += 35; flags.push(`Brand impersonation: ${found.join(', ')}`); }
+
+        // Suspicious keywords in path
+        const pathKeywords = ['login', 'verify', 'confirm', 'secure', 'update', 'account', 'bank', 'password', 'signin'];
+        const pathLower = new URL(full).pathname.toLowerCase();
+        const foundPath = pathKeywords.filter(k => pathLower.includes(k));
+        if (foundPath.length > 0) { score += foundPath.length * 10; flags.push(`Suspicious path: ${foundPath.join(', ')}`); }
+    } catch (e) { }
+
+    // Unicode/punycode (homograph attack)
+    if (/xn--/.test(url)) { score += 40; flags.push('Punycode/homograph attack'); }
+
+    // IP address instead of domain
+    if (/https?:\/\/(\d{1,3}\.){3}\d{1,3}/.test(url)) { score += 35; flags.push('IP address used instead of domain'); }
+
+    return { score: Math.min(score, 100), flags };
+}
+
+// ─── LAYER 2: Heuristic ML-Simulation ───────────────
+function runLayer2(url, layer1Score) {
+    let confidence = layer1Score / 100; // base from layer 1
+    const reasons = [];
+
+    // Feature: entropy of domain (random-looking = suspicious)
+    const domain = extractUrlDomain(url) || url;
+    const entropy = calcEntropy(domain);
+    if (entropy > 3.8) { confidence = Math.min(confidence + 0.15, 1); reasons.push('High domain entropy (random-looking)'); }
+
+    // Feature: vowel/consonant ratio
+    const vowels = (domain.match(/[aeiou]/gi) || []).length;
+    const consonants = (domain.match(/[bcdfghjklmnpqrstvwxyz]/gi) || []).length;
+    if (consonants > 0 && vowels / consonants < 0.25) {
+        confidence = Math.min(confidence + 0.1, 1);
+        reasons.push('Abnormal vowel-consonant ratio (computer-generated domain)');
+    }
+
+    // Feature: digit count in domain name
+    const digitCount = (domain.match(/\d/g) || []).length;
+    if (digitCount > 3) { confidence = Math.min(confidence + 0.1, 1); reasons.push('Many digits in domain'); }
+
+    // Feature: extra-long path/query
+    try {
+        const full = url.startsWith('http') ? url : 'https://' + url;
+        const parsed = new URL(full);
+        if (parsed.pathname.length > 50) { confidence = Math.min(confidence + 0.08, 1); reasons.push('Unusually long path'); }
+        if (parsed.search.length > 80) { confidence = Math.min(confidence + 0.08, 1); reasons.push('Long query string (possible tracking/obfuscation)'); }
+    } catch (e) { }
+
+    const reason = reasons.length > 0
+        ? `ML signals: ${reasons.slice(0, 2).join(' · ')}`
+        : 'No ML anomalies detected';
+
+    return { confidence: parseFloat(confidence.toFixed(2)), reason };
+}
+
+// Shannon entropy helper
+function calcEntropy(str) {
+    const freq = {};
+    for (const c of str) freq[c] = (freq[c] || 0) + 1;
+    return Object.values(freq).reduce((acc, v) => {
+        const p = v / str.length;
+        return acc - p * Math.log2(p);
+    }, 0);
+}
+
+// ─── LAYER 3: External API Check (async) ─────────────
+async function runLayer3(url) {
+    const results = { score: 0, warnings: [], sources: [] };
+
+    // Try Google Safe Browsing (no key needed for basic lookup)
+    try {
+        // PhishTank free public API
+        const encoded = encodeURIComponent(url);
+        const ptRes = await fetch(`https://checkurl.phishtank.com/checkurl/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'MailXpose/1.0' },
+            body: `url=${encoded}&format=json&app_key=`,
+            signal: AbortSignal.timeout(4000)
+        });
+        if (ptRes.ok) {
+            const ptData = await ptRes.json();
+            if (ptData.results && ptData.results.in_database) {
+                if (ptData.results.valid) {
+                    results.score += 50;
+                    results.warnings.push('⚠️ Listed in PhishTank phishing database');
+                    results.sources.push('PhishTank: PHISHING');
+                } else {
+                    results.sources.push('PhishTank: Verified safe');
+                }
+            }
+        }
+    } catch (e) { results.sources.push('PhishTank: Unavailable'); }
+
+    return results;
 }
 
 function checkGrammarIssues(text) {

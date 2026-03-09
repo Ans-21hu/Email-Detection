@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Report — MailXpose Email Forensic Analyzer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --primary: #1e3a8a;
+            --accent: #2563eb;
+            --text: #111827;
+            --sub: #374151;
+            --muted: #6b7280;
+            --border: #d1d5db;
+            --bg-alt: #f9fafb;
+            --success: #166534;
+            --danger: #991b1b;
+            --warn: #92400e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #cbd5e1;
+            font-family: 'Times New Roman', Times, serif;
+            color: var(--text);
+            font-size: 12pt;
+            line-height: 1.5;
+            counter-reset: page;
+        }
+
+
+
+        /* ── A4 PAPER ── */
+        .paper {
+            width: 595pt;
+            /* Standard PDF width in points (210mm) */
+            margin: 20px auto 40px;
+            background: white;
+            box-shadow: 0 6px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ── PAGE ── */
+        .page {
+            padding: 1in 1in 1in 1.5in;
+            min-height: 297mm;
+            position: relative;
+            background: white;
+            box-sizing: border-box;
+            page-break-after: always;
+        }
+
+        /* Automatic Page Numbering */
+        .page::after {
+            counter-increment: page;
+            content: "Page " counter(page);
+            position: absolute;
+            bottom: 0.5in;
+            right: 1in;
+            font-family: 'Inter', sans-serif;
+            font-size: 9pt;
+            color: #94a3b8;
+        }
+
+        .page+.page {
+            border-top: 1.5px dashed #d1d5db;
+        }
+
+        /* running header */
+        .run-head {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Inter', sans-serif;
+            font-size: 8pt;
+            color: #9ca3af;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 6px;
+            margin-bottom: 18px;
+        }
+
+        /* running footer */
+        .run-foot {
+            position: absolute;
+            bottom: 10mm;
+            left: 25mm;
+            right: 22mm;
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Inter', sans-serif;
+            font-size: 8pt;
+            color: #c9cdd3;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 5px;
+        }
+
+        @media print {
+
+            .cover .run-foot,
+            .cover::after {
+                display: none !important;
+                content: none !important;
+            }
+
+            /* Hide UI elements in print */
+            .toolbar {
+                display: none !important;
+            }
+        }
+
+        /* ── COVER ── */
+        .cover {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 240mm;
+            /* Reduced to provide more safety for footer */
+            background: linear-gradient(160deg, #f0f4ff 0%, #e8edfa 50%, #f9fafb 100%);
+            text-align: center;
+            position: relative;
+            padding: 20mm 22mm 30mm;
+        }
+
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #1e3a8a, #2563eb, #7c3aed);
+        }
+
+        .cover-icon {
+            width: 78px;
+            height: 78px;
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+            font-size: 36px;
+        }
+
+        .cover-category {
+            font-family: 'Inter', sans-serif;
+            font-size: 8.5pt;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #4b5563;
+            background: #e8edfa;
+            border: 1px solid #c7d2fe;
+            padding: 4px 18px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .cover h1 {
+            font-size: 32pt;
+            color: var(--primary);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 6px;
+        }
+
+        .cover h1 em {
+            color: var(--accent);
+            font-style: normal;
+        }
+
+        .cover-tagline {
+            font-size: 13pt;
+            color: #4b5563;
+            font-style: italic;
+            margin-bottom: 36px;
+        }
+
+        .cover-rule {
+            width: 70px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), #7c3aed);
+            border-radius: 2px;
+            margin: 0 auto 36px;
+        }
+
+        .cover-table {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px 48px;
+            text-align: left;
+            max-width: 400px;
+            margin: 0 auto 32px;
+        }
+
+        .ct-item {
+            border-bottom: 1px solid #d1d5db;
+            padding-bottom: 8px;
+        }
+
+        .ct-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 7.5pt;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9ca3af;
+            margin-bottom: 2px;
+        }
+
+        .ct-val {
+            font-size: 10pt;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .conf-stamp {
+            display: inline-block;
+            border: 2px solid #991b1b;
+            color: #991b1b;
+            font-family: 'Inter', sans-serif;
+            font-size: 8pt;
+            font-weight: 700;
+            padding: 3px 16px;
+            border-radius: 3px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            opacity: 0.65;
+            transform: rotate(-4deg);
+            margin-top: 10px;
+        }
+
+        .cover-foot {
+            position: absolute;
+            bottom: 12mm;
+            font-family: 'Inter', sans-serif;
+            font-size: 7.5pt;
+            color: #c9cdd3;
+            letter-spacing: 1px;
+        }
+
+        /* ── CONTENTS ── */
+        .toc-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 1px dotted #d1d5db;
+            padding: 5px 0;
+            font-size: 10.5pt;
+        }
+
+        .toc-row.l2 {
+            padding-left: 20px;
+            font-size: 10pt;
+            color: #4b5563;
+        }
+
+        .toc-pg {
+            font-family: 'Inter', sans-serif;
+            font-size: 9pt;
+            color: #9ca3af;
+        }
+
+        h1.ch {
+            font-size: 16pt;
+            color: var(--primary);
+            border-left: 6px solid var(--accent);
+            padding-left: 14px;
+            margin: 25px 0 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        h2.sec {
+            font-size: 14pt;
+            color: var(--text);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 4px;
+            margin: 20px 0 10px;
+            font-weight: 700;
+        }
+
+        h3.sub {
+            font-size: 12pt;
+            color: var(--primary);
+            margin: 15px 0 8px;
+            font-weight: 700;
+        }
+
+        /* ── PARAGRAPH ── */
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+
+        /* ── LISTS ── */
+        ul,
+        ol {
+            margin: 6px 0 12px 22px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        li::marker {
+            color: var(--accent);
+        }
+
+        ul.check {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        ul.check li::before {
+            content: '✓  ';
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        ul.arrow {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        ul.arrow li::before {
+            content: '▸  ';
+            color: var(--accent);
+        }
+
+        /* ── CALLOUT ── */
+        .callout {
+            border-radius: 7px;
+            padding: 12px 16px;
+            margin: 14px 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 10pt;
+        }
+
+        .callout-success {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+        }
+
+        .callout-info {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .callout-warn {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .callout-title {
+            font-weight: 700;
+            font-size: 8.5pt;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            color: inherit;
+        }
+
+        /* ── TABLE ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0;
+            font-size: 10pt;
+            font-family: 'Inter', sans-serif;
+        }
+
+        thead th {
+            background: #eef1f9;
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            color: var(--primary);
+            font-size: 9pt;
+            letter-spacing: 0.3px;
+            text-align: left;
+        }
+
+        tbody td {
+            border: 1px solid var(--border);
+            padding: 7px 12px;
+            vertical-align: top;
+        }
+
+        tbody tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+
+        .tc {
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 8pt;
+            font-weight: 600;
+        }
+
+        .bg {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .br {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .by {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .bb {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* ── RISK BARS ── */
+        .rb-wrap {
+            margin: 8px 0;
+        }
+
+        .rb-lbl {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Inter', sans-serif;
+            font-size: 9pt;
+            margin-bottom: 3px;
+        }
+
+        .rb-bg {
+            background: #e5e7eb;
+            border-radius: 4px;
+            height: 10px;
+        }
+
+        .rb-fill {
+            height: 10px;
+            border-radius: 4px;
+        }
+
+        /* ── ARCH BOX ── */
+        .arch {
+            background: #f0f4ff;
+            border: 1.5px solid #c7d2fe;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 14px 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 9pt;
+        }
+
+        .arch-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin: 8px 0;
+        }
+
+        .an {
+            background: var(--primary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 8.5pt;
+            text-align: center;
+            min-width: 110px;
+        }
+
+        .an.g {
+            background: #166534;
+        }
+
+        .an.p {
+            background: #5b21b6;
+        }
+
+        .an.o {
+            background: #92400e;
+        }
+
+        .an.r {
+            background: #991b1b;
+        }
+
+        .arr {
+            font-size: 14pt;
+            color: var(--accent);
+            padding: 0 8px;
+            line-height: 1;
+        }
+
+        .arch-sub {
+            font-size: 7.5pt;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 2px;
+        }
+
+        /* ── SIG ── */
+        .sig {
+            margin-top: 28px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        .sig-line {
+            border-bottom: 1px solid #9ca3af;
+            height: 32px;
+            margin-bottom: 5px;
+        }
+
+        .sig-lbl {
+            font-family: 'Inter', sans-serif;
+            font-size: 8.5pt;
+            color: #6b7280;
+        }
+
+        /* ── PRINT ── */
+        @media print {
+            body {
+                background: white;
+                font-size: 12pt;
+                font-family: 'Times New Roman', Times, serif;
+            }
+
+            .toolbar {
+                display: none !important;
+            }
+
+            .paper {
+                margin: 0;
+                box-shadow: none;
+                max-width: 100%;
+            }
+
+            .page {
+                padding: 1in 1in 1in 1.5in !important;
+                height: auto !important;
+                min-height: 297mm !important;
+                overflow: visible !important;
+                page-break-after: always !important;
+                border: none !important;
+            }
+
+            .page::after {
+                display: block !important;
+            }
+
+            .page+.page {
+                border-top: none;
+                page-break-before: always;
+            }
+
+            .cover {
+                page-break-after: always;
+                min-height: 100vh;
+            }
+
+            h1.ch,
+            h2.sec {
+                page-break-after: avoid;
+            }
+
+            table {
+                page-break-inside: avoid;
+            }
+
+            @page {
+                size: A4;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+
+
+    <div class="paper">
+
+        <!-- ════════════════════ COVER ════════════════════ -->
+        <div class="cover">
+            <div class="cover-icon">🛡️</div>
+            <div class="cover-category">Technical Project Report</div>
+            <h1><em>MailXpose</em></h1>
+            <div class="cover-tagline">An Email Threat Detection &amp; Forensic Analysis System</div>
+            <div class="cover-rule"></div>
+
+            <div class="cover-table">
+                <div class="ct-item">
+                    <div class="ct-label">Project Type</div>
+                    <div class="ct-val">Cybersecurity SaaS</div>
+                </div>
+                <div class="ct-item">
+                    <div class="ct-label">Platform</div>
+                    <div class="ct-val">Web + Chrome Extension</div>
+                </div>
+                <div class="ct-item">
+                    <div class="ct-label">Version</div>
+                    <div class="ct-val">v1.0 — Production</div>
+                </div>
+                <div class="ct-item">
+                    <div class="ct-label">Report Date</div>
+                    <div class="ct-val" id="reportDate">February 2026</div>
+                </div>
+                <div class="ct-item" style="grid-column:1/-1;">
+                    <div class="ct-label">Developed &amp; Submitted By</div>
+                    <div class="ct-val" style="font-size:13pt; color:var(--primary);">Divyansh Dhiman</div>
+                </div>
+            </div>
+
+            <div class="conf-stamp">Confidential</div>
+            <div class="cover-foot">MailXpose — Project Report · Divyansh Dhiman</div>
+        </div>
+
+        <!-- ════════════════════ TOC ════════════════════ -->
+        <div class="page">
+
+
+
+            <h1 class="ch">Table of Contents</h1>
+            <div style="margin-top:10px;">
+                <div class="toc-row"><span>1.&nbsp; Executive Summary</span><span class="toc-pg">3</span></div>
+                <div class="toc-row"><span>2.&nbsp; Problem Statement &amp; Objectives</span><span
+                        class="toc-pg">3</span></div>
+                <div class="toc-row l2"><span>2.1&nbsp; Problem Statement</span><span class="toc-pg">3</span></div>
+                <div class="toc-row l2"><span>2.2&nbsp; Project Objectives</span><span class="toc-pg">3</span></div>
+                <div class="toc-row"><span>3.&nbsp; System Overview &amp; Features</span><span class="toc-pg">4</span>
+                </div>
+                <div class="toc-row l2"><span>3.1&nbsp; Key Features</span><span class="toc-pg">4</span></div>
+                <div class="toc-row l2"><span>3.2&nbsp; Chrome Browser Extension</span><span class="toc-pg">4</span>
+                </div>
+                <div class="toc-row"><span>4.&nbsp; Technology Stack</span><span class="toc-pg">4</span></div>
+                <div class="toc-row"><span>5.&nbsp; System Architecture</span><span class="toc-pg">5</span></div>
+                <div class="toc-row l2"><span>5.1&nbsp; Architecture Overview</span><span class="toc-pg">5</span></div>
+                <div class="toc-row l2"><span>5.2&nbsp; Data Flow</span><span class="toc-pg">5</span></div>
+                <div class="toc-row"><span>6.&nbsp; Email Threat Detection Engine</span><span class="toc-pg">6</span>
+                </div>
+                <div class="toc-row l2"><span>6.1&nbsp; Analysis Parameters</span><span class="toc-pg">6</span></div>
+                <div class="toc-row l2"><span>6.2&nbsp; Risk Classification</span><span class="toc-pg">6</span></div>
+                <div class="toc-row l2"><span>6.3&nbsp; Threat Categories</span><span class="toc-pg">6</span></div>
+                <div class="toc-row"><span>7.&nbsp; Subscription &amp; Monetization Model</span><span
+                        class="toc-pg">7</span></div>
+                <div class="toc-row"><span>8.&nbsp; Security &amp; Privacy</span><span class="toc-pg">7</span></div>
+                <div class="toc-row"><span>9.&nbsp; Deployment &amp; Infrastructure</span><span class="toc-pg">7</span>
+                </div>
+                <div class="toc-row"><span>10. Limitations &amp; Future Scope</span><span class="toc-pg">8</span></div>
+                <div class="toc-row"><span>11. Conclusion</span><span class="toc-pg">8</span></div>
+            </div>
+
+        </div>
+
+        <!-- ════════════════════ PAGE 3 — Ch 1, 2 ════════════════════ -->
+        <div class="page">
+
+
+
+            <h1 class="ch">1. Executive Summary</h1>
+            <p>
+                <strong>MailXpose</strong> is a cloud-based cybersecurity platform built to detect phishing, malware
+                distribution
+                attempts, and social engineering threats concealed within email communications. The system provides
+                organizations
+                and individuals with an intelligent, easy-to-use tool that requires no IT expertise to operate.
+            </p>
+            <p>
+                At its core, MailXpose uses a proprietary multi-factor threat scoring engine that evaluates each email
+                against
+                a comprehensive set of forensic parameters — assigning a <strong>Risk Score from 0 to 100</strong> and
+                classifying
+                emails as <em>Safe</em>, <em>Suspicious</em>, or <em>Malicious</em>. The platform is accessible through
+                a
+                full-featured web dashboard and a <strong>Google Chrome Extension</strong> that integrates directly with
+                Gmail
+                for real-time scanning.
+            </p>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Live in Production</div>
+                MailXpose v1.0 is fully deployed and operational. The Chrome Extension is packaged
+                and ready for Chrome Web Store submission.
+            </div>
+
+            <h1 class="ch">2. Problem Statement &amp; Objectives</h1>
+            <h2 class="sec">2.1 Problem Statement</h2>
+            <p>
+                Email phishing remains the most widespread cyberattack vector globally, accounting for the majority of
+                documented data breaches. The core challenge is that modern phishing emails are highly sophisticated —
+                they convincingly mimic legitimate brands, government agencies, and financial institutions, making them
+                difficult to identify with the naked eye.
+            </p>
+            <p>
+                Most available security solutions are either expensive enterprise-grade tools requiring dedicated IT
+                teams,
+                or passive spam filters that cannot detect targeted, context-aware attacks. Individual users —
+                freelancers,
+                small business owners, students — are left largely unprotected. MailXpose addresses this gap by
+                providing
+                an <strong>accessible, self-service forensic email screening tool</strong> that any user can operate
+                without technical knowledge.
+            </p>
+
+            <h2 class="sec">2.2 Project Objectives</h2>
+            <ul>
+                <li>Build an automated email threat detection system usable by non-technical users.</li>
+                <li>Develop a Gmail-integrated Chrome Extension for real-time one-click scanning.</li>
+                <li>Generate detailed forensic reports with clear threat indicators and actionable recommendations.</li>
+                <li>Implement a tiered subscription model to monetize premium features.</li>
+                <li>Deploy as a scalable, cloud-hosted SaaS product accessible from any device.</li>
+                <li>Ensure strong data security and user privacy compliance throughout.</li>
+            </ul>
+
+
+        </div>
+
+        <!-- ════════════════════ PAGE 4 — Ch 3, 4 ════════════════════ -->
+        <div class="page">
+
+
+
+            <h1 class="ch">3. System Overview &amp; Features</h1>
+            <h2 class="sec">3.1 Key Features</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Description</th>
+                        <th>Availability</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Threat Detection Engine</td>
+                        <td>Multi-parameter forensic scoring with 0–100 risk scale</td>
+                        <td class="tc"><span class="badge bg">All Plans</span></td>
+                    </tr>
+                    <tr>
+                        <td>Chrome Extension</td>
+                        <td>One-click Gmail scanning with overlay results</td>
+                        <td class="tc"><span class="badge bg">All Plans</span></td>
+                    </tr>
+                    <tr>
+                        <td>Forensic Reports</td>
+                        <td>Detailed reports with threats, indicators &amp; recommendations</td>
+                        <td class="tc"><span class="badge bg">All Plans</span></td>
+                    </tr>
+                    <tr>
+                        <td>Analytics Dashboard</td>
+                        <td>Visual history of scans, threat trends &amp; statistics</td>
+                        <td class="tc"><span class="badge bg">All Plans</span></td>
+                    </tr>
+                    <tr>
+                        <td>AI-Powered Detection</td>
+                        <td>Advanced pattern recognition for emerging threats</td>
+                        <td class="tc"><span class="badge bb">Pro+</span></td>
+                    </tr>
+                    <tr>
+                        <td>Real-time Auto Scanning</td>
+                        <td>Automatically scans emails as they open in Gmail</td>
+                        <td class="tc"><span class="badge bb">Pro+</span></td>
+                    </tr>
+                    <tr>
+                        <td>Webhook Alerts</td>
+                        <td>Automated threat notification to external systems</td>
+                        <td class="tc"><span class="badge bb">Pro+</span></td>
+                    </tr>
+                    <tr>
+                        <td>API Access</td>
+                        <td>Programmatic access with personal API key</td>
+                        <td class="tc"><span class="badge bb">Pro+</span></td>
+                    </tr>
+                    <tr>
+                        <td>Export Reports</td>
+                        <td>Download scan results for records or compliance</td>
+                        <td class="tc"><span class="badge bg">All Plans</span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2 class="sec">3.2 Chrome Browser Extension</h2>
+            <p>
+                The MailXpose Chrome Extension integrates directly into the Gmail web interface. Upon installation and
+                account
+                linking, users see a <strong>"Scan with MailXpose"</strong> button within each email. The extension
+                reads the current email and sends it for analysis, then displays a real-time risk overlay within Gmail —
+                without navigating away from the inbox.
+            </p>
+            <ul class="check">
+                <li>Works seamlessly with Gmail's interface</li>
+                <li>Supports both manual and automatic scan modes</li>
+                <li>Tied to the user's web account for unified history and reports</li>
+                <li>Daily scan limits enforced per subscription plan</li>
+            </ul>
+
+            <h1 class="ch">4. Technology Stack</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Technology Used</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Backend / API</td>
+                        <td>Node.js with Express framework</td>
+                        <td>Server-side logic, request handling</td>
+                    </tr>
+                    <tr>
+                        <td>Database</td>
+                        <td>MongoDB (Cloud-hosted)</td>
+                        <td>Persistent storage for users and reports</td>
+                    </tr>
+                    <tr>
+                        <td>Authentication</td>
+                        <td>JWT Tokens + Password Hashing</td>
+                        <td>Secure user sessions and access control</td>
+                    </tr>
+                    <tr>
+                        <td>Frontend</td>
+                        <td>HTML5, CSS3, JavaScript</td>
+                        <td>Web dashboard, login, and report pages</td>
+                    </tr>
+                    <tr>
+                        <td>Data Visualization</td>
+                        <td>Chart.js library</td>
+                        <td>Analytics graphs and scan statistics</td>
+                    </tr>
+                    <tr>
+                        <td>Payments</td>
+                        <td>Razorpay Payment Gateway</td>
+                        <td>Subscription billing (INR)</td>
+                    </tr>
+                    <tr>
+                        <td>Browser Extension</td>
+                        <td>Chrome Extension (Manifest V3)</td>
+                        <td>Gmail integration</td>
+                    </tr>
+                    <tr>
+                        <td>Hosting</td>
+                        <td>Cloud Serverless Platform</td>
+                        <td>Production deployment with auto-scaling</td>
+                    </tr>
+                    <tr>
+                        <td>Security Layer</td>
+                        <td>Helmet.js, CORS, HTTPS</td>
+                        <td>HTTP hardening and secure transport</td>
+                    </tr>
+                </tbody>
+            </table>
+
+
+        </div>
+
+        <!-- ════════════════════ PAGE 5 — Ch 5 ════════════════════ -->
+        <div class="page">
+
+
+
+            <h1 class="ch">5. System Architecture</h1>
+            <h2 class="sec">5.1 Architecture Overview</h2>
+            <p>
+                MailXpose follows a three-tier client–server–database architecture. The frontend (web dashboard and
+                Chrome
+                Extension) communicates with a centralized backend API over secure HTTPS. The backend applies business
+                logic — including authentication, subscription enforcement, and forensic analysis — before persisting
+                results to the cloud database.
+            </p>
+
+            <div class="arch">
+                <div
+                    style="text-align:center; font-weight:700; color:var(--primary); margin-bottom:18px; font-size:10pt;">
+                    System Architecture — High-Level View</div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                    <div style="text-align:center;">
+                        <div class="an p" style="margin: 0 auto 4px;">Chrome Extension</div>
+                        <div class="arch-sub">Gmail Integration</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div class="an o" style="margin: 0 auto 4px;">Web Dashboard</div>
+                        <div class="arch-sub">Browser Interface</div>
+                    </div>
+                </div>
+
+                <div style="text-align:center; font-size:14pt; color:var(--accent); margin:6px 0;">↕ &nbsp; HTTPS / REST
+                    API &nbsp; ↕</div>
+
+                <div class="arch-row" style="margin: 8px 0;">
+                    <div style="text-align:center;">
+                        <div class="an" style="min-width:160px; margin:0 auto 4px;">Backend Application Server</div>
+                        <div class="arch-sub">Authentication · Analysis Engine · Business Logic</div>
+                    </div>
+                </div>
+
+                <div style="text-align:center; font-size:14pt; color:var(--accent); margin:6px 0;">↕</div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div style="text-align:center;">
+                        <div class="an g" style="margin: 0 auto 4px;">Cloud Database</div>
+                        <div class="arch-sub">Users · Reports · Sessions</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div class="an r" style="margin: 0 auto 4px;">Payment Gateway</div>
+                        <div class="arch-sub">Subscription Billing</div>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="sec">5.2 Data Flow</h2>
+            <ol>
+                <li><strong>User Login:</strong> Credentials verified → secure session token issued to the client.</li>
+                <li><strong>Email Submission:</strong> Email data (subject, sender, body, authentication headers)
+                    submitted for analysis.</li>
+                <li><strong>Forensic Processing:</strong> The analysis engine evaluates all threat parameters and
+                    computes a risk score.</li>
+                <li><strong>Report Generation:</strong> A structured forensic report is saved and returned to the client
+                    instantly.</li>
+                <li><strong>Dashboard View:</strong> User accesses full scan history, statistics, and individual report
+                    details.</li>
+                <li><strong>Extension Sync:</strong> The Chrome Extension fetches live data and displays results within
+                    Gmail.</li>
+            </ol>
+
+            <div class="callout callout-info">
+                <div class="callout-title">ℹ️ Data Storage</div>
+                The system stores email metadata (subject, sender address, risk scores, threat indicators) necessary for
+                generating reports and analytics. Raw email body content is processed in-memory during analysis and is
+                only retained if the user has opted into detailed report storage.
+            </div>
+
+
+        </div>
+
+        <!-- ════════════════════ PAGE 6 — Ch 6 ════════════════════ -->
+        <div class="page">
+
+
+
+            <h1 class="ch">6. Email Threat Detection Engine</h1>
+            <p>
+                The detection engine is the core intellectual component of MailXpose. It performs a simultaneous,
+                multi-dimensional
+                forensic evaluation of each email and produces a deterministic risk assessment. The engine runs entirely
+                server-side and is invisible to the end user — results are returned within milliseconds.
+            </p>
+
+            <h2 class="sec">6.1 Analysis Parameters</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>What Is Checked</th>
+                        <th>Impact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Email Header Authentication</td>
+                        <td>SPF &amp; DKIM record verification against sender domain</td>
+                        <td class="tc"><span class="badge br">High</span></td>
+                    </tr>
+                    <tr>
+                        <td>Sender Domain Reputation</td>
+                        <td>Whether the sender's domain is known, trusted, or suspicious</td>
+                        <td class="tc"><span class="badge by">Medium</span></td>
+                    </tr>
+                    <tr>
+                        <td>Subject Line Analysis</td>
+                        <td>Detection of urgency-inducing or pressure language</td>
+                        <td class="tc"><span class="badge by">Medium</span></td>
+                    </tr>
+                    <tr>
+                        <td>Keyword Pattern Matching</td>
+                        <td>Presence of phishing and malicious vocabulary in body text</td>
+                        <td class="tc"><span class="badge br">High</span></td>
+                    </tr>
+                    <tr>
+                        <td>Embedded Link Analysis</td>
+                        <td>Number of links, detection of shortened/obfuscated URLs</td>
+                        <td class="tc"><span class="badge by">Medium</span></td>
+                    </tr>
+                    <tr>
+                        <td>Attachment Risk Screening</td>
+                        <td>Detection of dangerous file types (executables, macros, scripts)</td>
+                        <td class="tc"><span class="badge br">Critical</span></td>
+                    </tr>
+                    <tr>
+                        <td>Formatting Anomalies</td>
+                        <td>Structural irregularities common in auto-generated phishing emails</td>
+                        <td class="tc"><span class="badge by">Low</span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2 class="sec">6.2 Risk Classification</h2>
+            <p>
+                All parameter scores are aggregated into a final Risk Score, clamped within a 0–100 range.
+                Verified security indicators (valid SPF, DKIM, trusted domain) reduce the overall score.
+                The score maps to one of three risk classifications:
+            </p>
+
+            <div class="rb-wrap">
+                <div class="rb-lbl"><span>🟢 &nbsp;SAFE &nbsp;— Score 0 to 39</span><span>No immediate threats
+                        detected</span></div>
+                <div class="rb-bg">
+                    <div class="rb-fill" style="width:39%; background:#22c55e;"></div>
+                </div>
+            </div>
+            <div class="rb-wrap">
+                <div class="rb-lbl"><span>🟡 &nbsp;SUSPICIOUS &nbsp;— Score 40 to 69</span><span>Exercise caution,
+                        verify sender</span></div>
+                <div class="rb-bg">
+                    <div class="rb-fill" style="width:69%; background:#f59e0b;"></div>
+                </div>
+            </div>
+            <div class="rb-wrap" style="margin-bottom:14px;">
+                <div class="rb-lbl"><span>🔴 &nbsp;MALICIOUS &nbsp;— Score 70 to 100</span><span>Do not interact. Report
+                        immediately</span></div>
+                <div class="rb-bg">
+                    <div class="rb-fill" style="width:100%; background:#ef4444;"></div>
+                </div>
+            </div>
+
+            <h2 class="sec">6.3 Threat Categories</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Threat Category</th>
+                        <th>Description</th>
+                        <th>Severity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Email Spoofing</td>
+                        <td>Sender identity falsified; authentication headers don't match</td>
+                        <td class="tc"><span class="badge br">High</span></td>
+                    </tr>
+                    <tr>
+                        <td>Authentication Failure</td>
+                        <td>Missing or invalid email security signatures</td>
+                        <td class="tc"><span class="badge by">Medium</span></td>
+                    </tr>
+                    <tr>
+                        <td>Social Engineering</td>
+                        <td>Urgency tactics, fear-based language to pressure the recipient</td>
+                        <td class="tc"><span class="badge by">Medium</span></td>
+                    </tr>
+                    <tr>
+                        <td>Phishing Language</td>
+                        <td>Vocabulary patterns associated with credential harvesting attacks</td>
+                        <td class="tc"><span class="badge by">Medium</span></td>
+                    </tr>
+                    <tr>
+                        <td>Malware Distribution</td>
+                        <td>Language or attachments associated with malware campaigns</td>
+                        <td class="tc"><span class="badge br">High</span></td>
+                    </tr>
+                    <tr>
+                        <td>Suspicious URL</td>
+                        <td>Embedded links using shortened or obfuscated URLs</td>
+                        <td class="tc"><span class="badge br">High</span></td>
+                    </tr>
+                    <tr>
+                        <td>Dangerous Attachment</td>
+                        <td>Executable, script, or macro-enabled file types detected</td>
+                        <td class="tc"><span class="badge br">Critical</span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+
+        </div>
+
+        <!-- ════════════════════ PAGE 7 — Ch 7, 8, 9 ════════════════════ -->
+        <div class="page">
+
+
+
+            <h1 class="ch">7. Subscription &amp; Monetization Model</h1>
+            <p>
+                MailXpose operates on a <strong>freemium SaaS model</strong> with three subscription tiers, billed
+                monthly
+                in Indian Rupees (INR) via a secure payment gateway. Subscription limits are enforced both at the server
+                and UI levels.
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th class="tc">Free</th>
+                        <th class="tc">Pro</th>
+                        <th class="tc">Enterprise</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Daily Email Scans</td>
+                        <td class="tc">3</td>
+                        <td class="tc">15</td>
+                        <td class="tc">50</td>
+                    </tr>
+                    <tr>
+                        <td>Monthly Scans</td>
+                        <td class="tc">60</td>
+                        <td class="tc">450</td>
+                        <td class="tc">1,500</td>
+                    </tr>
+                    <tr>
+                        <td>AI Detection</td>
+                        <td class="tc"><span class="badge br">No</span></td>
+                        <td class="tc"><span class="badge bg">Yes</span></td>
+                        <td class="tc"><span class="badge bg">Yes</span></td>
+                    </tr>
+                    <tr>
+                        <td>Real-time Scanning</td>
+                        <td class="tc"><span class="badge br">No</span></td>
+                        <td class="tc"><span class="badge bg">Yes</span></td>
+                        <td class="tc"><span class="badge bg">Yes</span></td>
+                    </tr>
+                    <tr>
+                        <td>Price (INR/month)</td>
+                        <td class="tc"><span class="badge bg">Free</span></td>
+                        <td class="tc"><span class="badge bb">₹99</span></td>
+                        <td class="tc"><span class="badge bb">₹199</span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h1 class="ch">8. Security &amp; Privacy</h1>
+            <h2 class="sec">8.1 Security Measures</h2>
+            <ul class="check">
+                <li>All user passwords are stored using strong cryptographic hashing — never in plaintext.</li>
+                <li>Session management is handled through short-lived, signed authentication tokens.</li>
+                <li>All data in transit is encrypted using HTTPS / TLS.</li>
+                <li>HTTP security headers enforced to protect against common web vulnerabilities (XSS, clickjacking,
+                    CSRF).</li>
+                <li>Payment processing is handled entirely by a PCI-compliant third-party gateway; MailXpose never
+                    stores card data.</li>
+            </ul>
+
+            <h2 class="sec">8.2 Privacy Policy</h2>
+            <p>
+                MailXpose processes email content solely for the purpose of threat analysis. Email body data is not
+                shared
+                with third parties, not used for training or advertising, and is deleted from processing memory after
+                analysis.
+                Users may request deletion of their stored report data at any time. A comprehensive Privacy Policy is
+                published on the platform.
+            </p>
+            <div class="callout callout-warn">
+                <div class="callout-title">⚠️ Extension Privacy Note</div>
+                The Chrome Extension requests permission to read the currently active Gmail tab only when the user
+                initiates a scan. The extension does not read emails passively in the background unless real-time
+                scanning is explicitly enabled by the user.
+            </div>
+
+            <h1 class="ch">9. Deployment &amp; Infrastructure</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Platform</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Web Application</td>
+                        <td>Cloud Serverless Hosting</td>
+                        <td>Global CDN, automatic SSL, zero-downtime deploys</td>
+                    </tr>
+                    <tr>
+                        <td>Database</td>
+                        <td>Managed Cloud Database</td>
+                        <td>Automatic backups, high availability cluster</td>
+                    </tr>
+                    <tr>
+                        <td>Chrome Extension</td>
+                        <td>Chrome Web Store</td>
+                        <td>Packaged (MV3), under review for listing</td>
+                    </tr>
+                    <tr>
+                        <td>Payment Processing</td>
+                        <td>Razorpay (India)</td>
+                        <td>INR billing, webhook-verified transactions</td>
+                    </tr>
+                </tbody>
+            </table>
+
+
+        </div>
+
+        <!-- ════════════════════ PAGE 8 — Ch 10, 11 ════════════════════ -->
+        <div class="page">
+
+
+
+            <h1 class="ch">10. Limitations &amp; Future Scope</h1>
+            <h2 class="sec">10.1 Current Limitations</h2>
+            <ul>
+                <li>The current detection engine uses a rule-based approach. Deep learning / NLP-based models are
+                    planned for a future release.</li>
+                <li>The Chrome Extension currently supports Gmail only. Support for Outlook and Yahoo Mail is planned.
+                </li>
+                <li>Attachment analysis is limited to file-type screening. A sandboxed execution environment for deeper
+                    file analysis is a future goal.</li>
+                <li>Mobile access is currently browser-based. A dedicated native mobile app is under consideration.</li>
+            </ul>
+
+            <h2 class="sec">10.2 Future Scope</h2>
+            <ul class="arrow">
+                <li><strong>Machine Learning Integration:</strong> Train classification models on labeled phishing
+                    datasets for AI-driven detection with higher accuracy and fewer false positives.</li>
+                <li><strong>Multi-client Extension Support:</strong> Expand the browser extension to support Outlook
+                    Web, Yahoo Mail, and other providers.</li>
+                <li><strong>Threat Intelligence Feeds:</strong> Integrate with open-source threat databases to
+                    cross-reference known phishing domains and malicious IPs in real time.</li>
+                <li><strong>Mobile Application:</strong> Develop a companion mobile app (Android &amp; iOS) with push
+                    alerts for immediate threat notifications.</li>
+                <li><strong>Enterprise SSO:</strong> Support SAML 2.0 and OAuth 2.0 for corporate single sign-on
+                    deployments.</li>
+                <li><strong>Two-Factor Authentication:</strong> Add TOTP-based 2FA for enhanced account security.</li>
+                <li><strong>Team / Organization Accounts:</strong> Allow multiple users under a single organization with
+                    centralized admin controls.</li>
+            </ul>
+
+            <h1 class="ch">11. Conclusion</h1>
+            <p>
+                MailXpose is a fully functional, production-ready cybersecurity platform that effectively addresses the
+                growing need for accessible email threat detection. By combining forensic analysis, an intuitive web
+                interface, a real-time Chrome Extension, and a scalable cloud backend, the system delivers genuine
+                value to both individual users and organizations seeking to protect themselves from email-based attacks.
+            </p>
+            <p>
+                The project demonstrates end-to-end product development capability — spanning backend engineering,
+                frontend design, browser extension development, payment integration, and cloud deployment. With
+                the planned machine learning enhancements and expanded platform support, MailXpose is positioned
+                to grow into a comprehensive and competitive product in the email security market.
+            </p>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Summary</div>
+                MailXpose v1.0 is live in production with all core features operational. The Chrome Extension is built,
+                tested, and ready for Chrome Web Store submission. The platform is actively available for user
+                registration
+                and use.
+            </div>
+
+            <!-- SIGNATURE -->
+            <div style="margin-top:28px; border-top:1px solid #e5e7eb; padding-top:18px;">
+                <div style="display:inline-block; min-width:260px;">
+                    <div class="sig-line"></div>
+                    <div class="sig-lbl" style="font-weight:600; color:var(--primary);">Divyansh Dhiman</div>
+                    <div class="sig-lbl">Developer &amp; Author · MailXpose</div>
+                    <div class="sig-lbl" style="margin-top:4px;">Date: &nbsp;26 February 2026</div>
+
+                </div>
+
+
+            </div>
+
+        </div><!-- /paper -->
+
+        <script>
+            const d = new Date();
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('reportDate').textContent = months[d.getMonth()] + ' ' + d.getFullYear();
+        </script>
+</body>
+
+</html>

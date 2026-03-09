@@ -148,12 +148,10 @@ function injectButton() {
     const button = document.createElement('button');
     button.id = 'email-analyzer-btn';
     button.className = CONFIG.buttonClassName;
-    button.innerHTML = `
-        <span style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-            <span style="font-size: 16px;">🔍</span>
-            <span>Analyze Email</span>
-        </span>
-    `;
+
+    // Create inner wrapper to avoid innerHTML using helper
+    const innerWrapper = createButtonContent('🔍', 'Analyze Email');
+    button.appendChild(innerWrapper);
 
     // Button styling
     button.style.cssText = `
@@ -204,6 +202,26 @@ function injectButton() {
     } catch (error) {
         console.error('Error injecting button:', error);
     }
+}
+
+// Helper to create button content without innerHTML
+function createButtonContent(icon, text) {
+    const wrapper = document.createElement('span');
+    wrapper.style.display = 'flex';
+    wrapper.style.alignItems = 'center';
+    wrapper.style.gap = '8px';
+    wrapper.style.fontSize = '14px';
+
+    const iconSpan = document.createElement('span');
+    iconSpan.style.fontSize = '16px';
+    iconSpan.textContent = icon;
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = text;
+
+    wrapper.appendChild(iconSpan);
+    wrapper.appendChild(textSpan);
+    return wrapper;
 }
 
 // Find the best location for the button
@@ -292,17 +310,13 @@ async function handleAnalyzeClick() {
     if (!button) return;
 
     // Update button state
-    const originalHTML = button.innerHTML;
-    const originalCursor = button.style.cursor;
-
-    button.innerHTML = `
-        <span style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-            <span style="font-size: 16px;">⏳</span>
-            <span>Analyzing...</span>
-        </span>
-    `;
+    // Clear button and set loading state safely
+    button.textContent = '';
+    const loadingWrapper = createButtonContent('⏳', 'Analyzing...');
+    button.appendChild(loadingWrapper);
     button.disabled = true;
     button.style.opacity = '0.8';
+    const originalCursor = button.style.cursor;
     button.style.cursor = 'wait';
 
     try {
@@ -354,10 +368,11 @@ async function handleAnalyzeClick() {
         // Reset button after 2 seconds
         setTimeout(() => {
             if (button && button.parentNode) {
-                button.innerHTML = originalHTML;
+                button.textContent = '';
+                button.appendChild(createButtonContent('🔍', 'Analyze Email'));
                 button.disabled = false;
                 button.style.opacity = '1';
-                button.style.cursor = originalCursor;
+                button.style.cursor = originalCursor || 'pointer';
             }
         }, 2000);
     }
@@ -405,6 +420,31 @@ function getEmailContent() {
             throw new Error('No email content found');
         }
 
+        // ── NEW: Extract all links from <a href> tags (catches hidden/masked links) ──
+        const extractedLinks = [];
+        const anchorTags = emailBody.querySelectorAll('a[href]');
+        anchorTags.forEach(anchor => {
+            const href = anchor.getAttribute('href');
+            if (href && (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('www.'))) {
+                if (!extractedLinks.includes(href)) {
+                    extractedLinks.push(href);
+                }
+            }
+        });
+
+        // Also extract URLs visible in plain text (some emails have no anchor tags)
+        const plainTextUrlRegex = /https?:\/\/[^\s"'<>)\]]+/g;
+        const plainTextMatches = emailBody.textContent.match(plainTextUrlRegex) || [];
+        plainTextMatches.forEach(url => {
+            const cleaned = url.replace(/[.,;:!?]$/, ''); // strip trailing punctuation
+            if (!extractedLinks.includes(cleaned)) {
+                extractedLinks.push(cleaned);
+            }
+        });
+
+        console.log(`🔗 Extracted ${extractedLinks.length} unique links from email`);
+        // ────────────────────────────────────────────────────────────────────────────
+
         // Get metadata
         const subject = document.querySelector('h2[data-thread-perm-id]')?.textContent?.trim() ||
             document.querySelector('h2.hP')?.textContent?.trim() ||
@@ -438,7 +478,8 @@ function getEmailContent() {
             emailId: currentEmailId,
             extractedAt: new Date().toISOString(),
             isVerifiedUI: isVerified,
-            viaDomain: viaDomain
+            viaDomain: viaDomain,
+            extractedLinks: extractedLinks  // ← NEW: all links including hidden ones
         };
 
         console.log('Email extracted:', {
